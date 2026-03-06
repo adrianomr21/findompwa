@@ -1,0 +1,12 @@
+{
+  "name": "fin-pwa",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "vitest",
+    "dev": "npx live-server ."
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "jsdom": "^22.1.0"
+  }
+}
