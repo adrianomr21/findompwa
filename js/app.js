@@ -1,12 +1,15 @@
 import firebaseConfig from './firebase-config.js';
+import { AuthService } from './auth-service.js';
+import { ImportService } from './import-service.js';
 
 // Inicializar Firebase
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
-// Configuração Firebase Auth
 const auth = firebase.auth();
+const db = firebase.firestore();
 const provider = new firebase.auth.GoogleAuthProvider();
+const authService = new AuthService(auth);
 
 const authScreen = document.getElementById('auth-screen');
 const appWrapper = document.getElementById('app-wrapper');
@@ -22,12 +25,26 @@ const goToLogin = document.getElementById('go-to-login');
 goToSignup.addEventListener('click', (e) => { e.preventDefault(); loginBox.classList.add('hidden'); signupBox.classList.remove('hidden'); });
 goToLogin.addEventListener('click', (e) => { e.preventDefault(); signupBox.classList.add('hidden'); loginBox.classList.remove('hidden'); });
 
+// Lógica de mostrar/esconder senha
+document.querySelectorAll('.toggle-password').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.dataset.target);
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+            input.type = 'password';
+            btn.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+    });
+});
+
 // Login com Email/Senha
 document.getElementById('form-login').addEventListener('submit', (e) => {
     e.preventDefault();
     const email = document.getElementById('login-email').value;
     const pass = document.getElementById('login-password').value;
-    auth.signInWithEmailAndPassword(email, pass).catch(err => alert("Erro ao entrar: " + err.message));
+    authService.loginWithEmail(email, pass).catch(err => alert("Erro ao entrar: " + err.message));
 });
 
 // Cadastro com Email/Senha
@@ -35,7 +52,7 @@ document.getElementById('form-signup').addEventListener('submit', (e) => {
     e.preventDefault();
     const email = document.getElementById('signup-email').value;
     const pass = document.getElementById('signup-password').value;
-    auth.createUserWithEmailAndPassword(email, pass)
+    authService.signUpWithEmail(email, pass)
         .then(() => alert("Conta criada com sucesso!"))
         .catch(err => alert("Erro ao cadastrar: " + err.message));
 });
@@ -60,10 +77,11 @@ btnLoginGoogle.addEventListener('click', () => {
 });
 
 btnLogout.addEventListener('click', () => {
-    auth.signOut();
+    authService.logout();
 });
 
 // Navegação entre telas (Bottom Nav)
+const screens = document.querySelectorAll('.screen');
 const navButtons = document.querySelectorAll('#app-nav button');
 
 function showScreen(screenId) {
@@ -193,53 +211,34 @@ document.querySelector('.modal-content').addEventListener('click', (e) => e.stop
 
 async function processarImportacao() {
     const texto = importTextarea.value.trim();
-    if (!texto) {
-        importStatus.textContent = "Por favor, cole os dados primeiro.";
-        importStatus.className = "import-status error";
-        return;
-    }
+    const despesas = ImportService.parseTSV(texto);
 
-    const linhas = texto.split('\n');
-    if (linhas.length < 2) {
-        importStatus.textContent = "Formato inválido. Certifique-se de incluir o cabeçalho.";
+    if (despesas.length === 0) {
+        importStatus.textContent = "Nenhum dado válido encontrado para importar.";
         importStatus.className = "import-status error";
         return;
     }
 
     btnProcessImport.disabled = true;
     btnProcessImport.textContent = "Processando...";
-    importStatus.textContent = "Iniciando importação...";
+    importStatus.textContent = `Iniciando importação de ${despesas.length} registros...`;
     importStatus.className = "import-status";
 
     const db = firebase.firestore();
     let sucessos = 0;
     let erros = 0;
 
-    // Pula o cabeçalho
-    for (let i = 1; i < linhas.length; i++) {
-        if (!linhas[i].trim()) continue;
-
-        const colunas = linhas[i].split('\t');
-        if (colunas.length < 7) continue;
-
-        const despesa = {
-            dataHora: colunas[0],
-            descricao: colunas[1],
-            valor: parseFloat(colunas[2].replace(',', '.')),
-            parcelas: colunas[3] ? parseInt(colunas[3]) : 1,
-            dataPagamento: colunas[4],
-            metodoPagamento: colunas[5],
-            categoria: colunas[6],
-            importado: true,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
+    for (const despesa of despesas) {
         try {
-            await db.collection('despesas').add(despesa);
+            await db.collection('despesas').add({
+                ...despesa,
+                importado: true,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
             sucessos++;
-            importStatus.textContent = `Progresso: ${sucessos} de ${linhas.length - 1} importados...`;
+            importStatus.textContent = `Progresso: ${sucessos} de ${despesas.length} importados...`;
         } catch (error) {
-            console.error("Erro na linha " + i, error);
+            console.error("Erro ao importar item:", error);
             erros++;
         }
     }
@@ -271,9 +270,6 @@ if ('serviceWorker' in navigator) {
 // Atualizar exibição do total gasto
 function updateTotalDisplay(value) {
     const formatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-    
-    const headerTotal = document.getElementById('header-total-spent');
-    if (headerTotal) headerTotal.textContent = formatted;
     
     const mainTotal = document.getElementById('main-total-spent');
     if (mainTotal) mainTotal.textContent = formatted;
