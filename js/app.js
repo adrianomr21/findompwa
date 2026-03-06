@@ -134,7 +134,8 @@ function getDashFilters() {
     return {
         month: document.getElementById('dash-filter-month'),
         year: document.getElementById('dash-filter-year'),
-        category: document.getElementById('dash-filter-category')
+        category: document.getElementById('dash-filter-category'),
+        payment: document.getElementById('dash-filter-payment')
     };
 }
 
@@ -157,8 +158,8 @@ function setupYearFilter() {
 }
 
 function setupFilterListeners() {
-    const { month, year, category } = getDashFilters();
-    [month, year, category].forEach(el => {
+    const { month, year, category, payment } = getDashFilters();
+    [month, year, category, payment].forEach(el => {
         if (el) {
             el.removeEventListener('change', renderDashboard);
             el.addEventListener('change', renderDashboard);
@@ -186,12 +187,13 @@ async function loadDashboardData() {
 }
 
 function renderDashboard() {
-    const { month: monthSelect, year: yearSelect, category: categorySelect } = getDashFilters();
+    const { month: monthSelect, year: yearSelect, category: categorySelect, payment: paymentSelect } = getDashFilters();
     if (!monthSelect || !yearSelect) return;
 
     const filterMonth = parseInt(monthSelect.value);
     const filterYear = parseInt(yearSelect.value);
     const categoryFilter = categorySelect ? categorySelect.value : 'all';
+    const paymentFilter = paymentSelect ? paymentSelect.value : 'all';
 
     const filtered = [];
 
@@ -203,7 +205,9 @@ function renderDashboard() {
             
             if (currentInst) {
                 const matchCategory = categoryFilter === 'all' || exp.categoryId === categoryFilter;
-                if (matchCategory) {
+                const matchPayment = paymentFilter === 'all' || exp.paymentMethodId === paymentFilter;
+                
+                if (matchCategory && matchPayment) {
                     filtered.push({
                         ...exp,
                         currentInstallment: currentInst
@@ -215,8 +219,9 @@ function renderDashboard() {
             const matchMonth = startDate.getMonth() === filterMonth;
             const matchYear = startDate.getFullYear() === filterYear;
             const matchCategory = categoryFilter === 'all' || exp.categoryId === categoryFilter;
+            const matchPayment = paymentFilter === 'all' || exp.paymentMethodId === paymentFilter;
             
-            if (matchMonth && matchYear && matchCategory) {
+            if (matchMonth && matchYear && matchCategory && matchPayment) {
                 filtered.push(exp);
             }
         }
@@ -490,11 +495,18 @@ async function loadAllSettings() {
         currentPaymentMethods = await settingsService.getPaymentMethods();
         currentFixedDebts = await settingsService.getFixedDebts();
         
-        const { category: dashFilterCategory } = getDashFilters();
+        const { category: dashFilterCategory, payment: dashFilterPayment } = getDashFilters();
+        
         if (dashFilterCategory) {
             dashFilterCategory.innerHTML = '<option value="all">Todas</option>' + 
                 currentCategories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
         }
+
+        if (dashFilterPayment) {
+            dashFilterPayment.innerHTML = '<option value="all">Todos</option>' + 
+                currentPaymentMethods.map(pay => `<option value="${pay.id}">${pay.name}</option>`).join('');
+        }
+
         renderSettingsLists();
         populateSelects();
         loadDashboardData(); // Carrega despesas após configurações para atualizar banner
