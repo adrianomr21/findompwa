@@ -114,7 +114,7 @@ function showScreen(screenId) {
         btn.classList.toggle('active', btn.dataset.screen === screenId);
     });
     
-    if (screenId === 'dashboard') {
+    if (screenId === 'dashboard' || screenId === 'register') {
         loadDashboardData();
     }
     
@@ -179,6 +179,7 @@ async function loadDashboardData() {
             .sort((a, b) => new Date(b.date) - new Date(a.date));
             
         renderDashboard();
+        updateTotalDisplay();
     } catch (error) {
         console.error("Erro ao carregar dashboard:", error);
     }
@@ -471,6 +472,7 @@ if (formRegister) {
             formRegister.reset();
             parcelasField.classList.add('hidden');
             if (progressContainer) progressContainer.classList.add('hidden');
+            loadDashboardData(); // Recarrega para atualizar banner
             showScreen('dashboard');
         } catch (error) {
             alert("Erro ao registrar: " + error.message);
@@ -495,9 +497,7 @@ async function loadAllSettings() {
         }
         renderSettingsLists();
         populateSelects();
-        if (document.getElementById('screen-dashboard').classList.contains('active')) {
-            loadDashboardData();
-        }
+        loadDashboardData(); // Carrega despesas após configurações para atualizar banner
     } catch (error) {
         console.error("Erro ao carregar configurações:", error);
     }
@@ -789,15 +789,31 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-function updateTotalDisplay(value) {
-    const formatted = formatCurrency(value);
+function updateTotalDisplay() {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const monthName = now.toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+    const bannerTitle = document.querySelector('.global-total-banner small');
+    if (bannerTitle) bannerTitle.textContent = `GASTO TOTAL DO MÊS (${monthName})`;
+    let total = 0;
+    currentExpenses.forEach(exp => {
+        const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
+        if (isParcelado) {
+            const currentInst = getInstallmentStatus(exp.date, exp.installments, currentMonth, currentYear);
+            if (currentInst) total += exp.value;
+        } else {
+            const expDate = new Date(exp.date);
+            if (expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear) total += exp.value;
+        }
+    });
     const mainTotal = document.getElementById('main-total-spent');
-    if (mainTotal) mainTotal.textContent = formatted;
+    if (mainTotal) mainTotal.textContent = formatCurrency(total);
 }
 
 // Start
 document.addEventListener('DOMContentLoaded', () => {
     setupYearFilter();
     showScreen('register');
-    updateTotalDisplay(0);
+    updateTotalDisplay();
 });
