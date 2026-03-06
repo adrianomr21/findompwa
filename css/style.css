@@ -338,80 +338,10 @@ input:focus, select:focus { border-color: var(--accent); }
     align-items: center;
     justify-content: center;
     padding: 20px;
+    overflow-y: auto; /* Permite rolar o modal inteiro se necessário */
 }
 
 .modal.active { display: flex; }
-
-.auth-card {
-    text-align: center;
-    max-width: 400px;
-}
-
-.auth-card h1 {
-    margin-bottom: 10px;
-    font-size: 1.8rem;
-    color: var(--text);
-}
-
-.auth-card p {
-    margin-bottom: 20px;
-    color: var(--text-muted);
-}
-
-.auth-card input {
-    margin-bottom: 12px;
-}
-
-.password-wrapper {
-    position: relative;
-    width: 100%;
-    margin-bottom: 12px;
-}
-
-.password-wrapper input {
-    margin-bottom: 0;
-}
-
-.toggle-password {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    color: var(--text-muted);
-    font-size: 1.2rem;
-    z-index: 10;
-}
-
-.divider {
-    margin: 20px 0;
-    display: flex;
-    align-items: center;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-}
-
-.divider::before, .divider::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-}
-
-.divider span {
-    padding: 0 10px;
-}
-
-.auth-toggle {
-    margin-top: 20px;
-    font-size: 0.9rem;
-}
-
-.auth-toggle a {
-    color: var(--accent);
-    text-decoration: none;
-    font-weight: 600;
-}
 
 .modal-content {
     background: var(--surface);
@@ -421,6 +351,21 @@ input:focus, select:focus { border-color: var(--accent); }
     padding: 30px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+    max-height: 90vh; /* Altura máxima de 90% da tela */
+    overflow-y: auto; /* Ativa rolagem interna se o conteúdo for grande */
+    position: relative;
+    margin: auto; /* Garante centralização quando o scroll do pai é ativado */
+}
+
+/* Garante que o modal ocupe menos espaço em telas muito pequenas */
+@media (max-height: 700px) {
+    .modal {
+        align-items: flex-start; /* Alinha no topo para não cortar o início */
+    }
+    .modal-content {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
 }
 
 .modal-header {
@@ -587,6 +532,246 @@ input:focus, select:focus { border-color: var(--accent); }
 .btn-danger:hover {
     background: #ff7675;
     color: white;
+}
+
+/* Dashboard Styles */
+.dashboard-filters {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    width: 100%;
+    flex-wrap: wrap; /* Permite quebra de linha se necessário */
+}
+
+.dashboard-filters .filter-group {
+    flex: 1;
+    min-width: 120px; /* Garante que os campos não fiquem minúsculos */
+}
+
+.dashboard-summary {
+    margin-bottom: 32px;
+    width: 100%;
+}
+
+.summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+
+.summary-card small {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.summary-card h2 {
+    font-size: 2.5rem;
+    color: var(--accent);
+    font-weight: 800;
+    word-break: break-word; /* Evita que valores grandes quebrem o layout */
+}
+
+.dashboard-section {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.dashboard-section h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dashboard-section h3 i {
+    color: var(--accent);
+}
+
+.charts-container {
+    height: 300px;
+    position: relative;
+    width: 100%;
+}
+
+.section-header-inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.badge {
+    background: var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* History List */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: 0.2s;
+    gap: 12px; /* Espaço entre info e valor */
+}
+
+.history-item:hover {
+    border-color: var(--text-muted);
+}
+
+.history-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0; /* Permite que o flex-item encolha para aplicar truncate */
+}
+
+.history-name {
+    font-weight: 600;
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Corta nomes longos com ... */
+}
+
+.history-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap; /* Permite que as tags quebrem em telas muito pequenas */
+    gap: 8px;
+}
+
+.history-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.history-value {
+    text-align: right;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0; /* Valor nunca deve encolher */
+}
+
+.history-amount {
+    font-weight: 700;
+    font-size: 1.1rem;
+    white-space: nowrap;
+}
+
+.value-input-wrapper.small #edit-reg-value {
+    font-size: 2rem;
+    width: 150px;
+}
+
+@media (max-width: 900px) {
+    #app-nav { 
+        width: 100%; 
+        height: var(--nav-height-mobile); 
+        flex-direction: row; 
+        bottom: 0; 
+        top: auto; 
+        padding: 0; 
+        border-right: none;
+        border-top: 1px solid var(--border); 
+        justify-content: space-around; 
+        align-items: center;
+    }
+    
+    .nav-brand, .nav-user { display: none; }
+    
+    .nav-links { 
+        flex-direction: row; 
+        width: 100%; 
+        height: 100%;
+        gap: 0;
+    }
+    
+    .nav-links button { 
+        flex-direction: column; 
+        justify-content: center;
+        align-items: center; 
+        gap: 4px; 
+        font-size: 0.7rem; 
+        padding: 0; 
+        flex: 1; 
+        background: transparent !important;
+        border-radius: 0;
+    }
+
+    .nav-links button i {
+        font-size: 1.4rem;
+        line-height: 1;
+    }
+    
+    .nav-links button.active {
+        color: var(--accent);
+    }
+
+    .nav-links button.active i {
+        color: var(--accent);
+    }
+    
+    #app-content { margin-left: 0; padding: 20px 16px 100px; }
+    .section-header h1 { font-size: 1.8rem; }
+    #reg-value { font-size: 1.8rem; }
+    
+    .input-grid { 
+        grid-template-columns: 1fr; 
+        gap: 20px; 
+    }
+
+    .field-group.span-2 {
+        grid-column: span 1;
+    }
+
+    /* Dashboard Mobile Tweaks */
+    .summary-card h2 {
+        font-size: 2rem;
+    }
+
+    .dashboard-section {
+        padding: 16px;
+    }
+
+    .dashboard-filters {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .dashboard-filters .filter-group {
+        width: 100%;
+    }
 }
 
 .hidden { display: none !important; }

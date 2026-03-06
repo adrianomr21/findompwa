@@ -182,9 +182,65 @@
             <section id="screen-dashboard" class="screen">
                 <header class="section-header">
                     <h1>Painel de Controle</h1>
+                    <p>Visão geral dos seus gastos</p>
                 </header>
-                <div class="dashboard-widgets">
-                    <!-- Cards de resumo aqui -->
+
+                <!-- Filtros do Dashboard -->
+                <div class="dashboard-filters">
+                    <div class="filter-group">
+                        <label>Mês</label>
+                        <select id="dash-filter-month">
+                            <option value="0">Janeiro</option>
+                            <option value="1">Fevereiro</option>
+                            <option value="2">Março</option>
+                            <option value="3">Abril</option>
+                            <option value="4">Maio</option>
+                            <option value="5">Junho</option>
+                            <option value="6">Julho</option>
+                            <option value="7">Agosto</option>
+                            <option value="8">Setembro</option>
+                            <option value="9">Outubro</option>
+                            <option value="10">Novembro</option>
+                            <option value="11">Dezembro</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Ano</label>
+                        <select id="dash-filter-year"></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Categoria</label>
+                        <select id="dash-filter-category">
+                            <option value="all">Todas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Resumo Geral -->
+                <div class="dashboard-summary">
+                    <div class="summary-card">
+                        <small>Total no Período</small>
+                        <h2 id="dash-total-value">R$ 0,00</h2>
+                    </div>
+                </div>
+
+                <!-- Gráficos de Categorias -->
+                <div class="dashboard-section">
+                    <h3><i class="bi bi-pie-chart"></i> Uso do Limite por Categoria</h3>
+                    <div class="charts-container">
+                        <canvas id="chart-categories"></canvas>
+                    </div>
+                </div>
+
+                <!-- Histórico de Despesas -->
+                <div class="dashboard-section">
+                    <div class="section-header-inline">
+                        <h3><i class="bi bi-clock-history"></i> Histórico</h3>
+                        <span id="history-count" class="badge">0 itens</span>
+                    </div>
+                    <div id="history-list" class="history-list">
+                        <div class="list-empty">Carregando histórico...</div>
+                    </div>
                 </div>
             </section>
 
@@ -241,6 +297,72 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Modal de Edição de Despesa -->
+    <div id="modal-edit-expense" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3>Editar Despesa</h3>
+                <button class="close-modal"><i class="bi bi-x-lg"></i></button>
+            </header>
+            
+            <form id="form-edit-expense">
+                <input type="hidden" id="edit-expense-id">
+                
+                <div class="value-input-wrapper small">
+                    <span class="currency">R$</span>
+                    <input type="number" id="edit-reg-value" step="0.01" required>
+                </div>
+
+                <div class="input-grid">
+                    <div class="field-group span-2">
+                        <label>Descrição</label>
+                        <input type="text" id="edit-reg-name" required>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Modo</label>
+                        <div class="segmented-control">
+                            <input type="radio" name="edit-reg-type" value="vista" id="edit-type-vista">
+                            <label for="edit-type-vista">À Vista</label>
+                            <input type="radio" name="edit-reg-type" value="parcelado" id="edit-type-parcelado">
+                            <label for="edit-type-parcelado">Parcelado</label>
+                        </div>
+                    </div>
+
+                    <div id="edit-parcelas-field" class="field-group hidden">
+                        <label>Nº Parcelas</label>
+                        <input type="number" id="edit-reg-installments" min="2">
+                    </div>
+
+                    <div class="field-group span-2">
+                        <label>Pagamento</label>
+                        <select id="edit-reg-payment-method" required></select>
+                    </div>
+
+                    <div class="field-group span-2">
+                        <label>Categoria</label>
+                        <select id="edit-reg-category" required></select>
+                    </div>
+                    
+                    <div class="field-group span-2">
+                        <label>Data</label>
+                        <input type="date" id="edit-reg-date" required>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label>Anotações</label>
+                    <textarea id="edit-reg-notes" rows="2"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-main">Salvar Alterações</button>
+                    <button type="button" id="btn-delete-expense" class="btn-danger">Excluir Registro</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Modal de Edição (Genérico para Ajustes) -->

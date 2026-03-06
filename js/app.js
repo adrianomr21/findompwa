@@ -16,6 +16,8 @@ let settingsService = null;
 let currentCategories = [];
 let currentPaymentMethods = [];
 let currentFixedDebts = [];
+let currentExpenses = [];
+let categoryChart = null;
 
 const authScreen = document.getElementById('auth-screen');
 const appWrapper = document.getElementById('app-wrapper');
@@ -28,8 +30,8 @@ const signupBox = document.getElementById('auth-signup-box');
 const goToSignup = document.getElementById('go-to-signup');
 const goToLogin = document.getElementById('go-to-login');
 
-goToSignup.addEventListener('click', (e) => { e.preventDefault(); loginBox.classList.add('hidden'); signupBox.classList.remove('hidden'); });
-goToLogin.addEventListener('click', (e) => { e.preventDefault(); signupBox.classList.add('hidden'); loginBox.classList.remove('hidden'); });
+if (goToSignup) goToSignup.addEventListener('click', (e) => { e.preventDefault(); loginBox.classList.add('hidden'); signupBox.classList.remove('hidden'); });
+if (goToLogin) goToLogin.addEventListener('click', (e) => { e.preventDefault(); signupBox.classList.add('hidden'); loginBox.classList.remove('hidden'); });
 
 // Lógica de mostrar/esconder senha
 document.querySelectorAll('.toggle-password').forEach(btn => {
@@ -46,22 +48,28 @@ document.querySelectorAll('.toggle-password').forEach(btn => {
 });
 
 // Login com Email/Senha
-document.getElementById('form-login').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const pass = document.getElementById('login-password').value;
-    authService.loginWithEmail(email, pass).catch(err => alert("Erro ao entrar: " + err.message));
-});
+const formLogin = document.getElementById('form-login');
+if (formLogin) {
+    formLogin.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-password').value;
+        authService.loginWithEmail(email, pass).catch(err => alert("Erro ao entrar: " + err.message));
+    });
+}
 
 // Cadastro com Email/Senha
-document.getElementById('form-signup').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = document.getElementById('signup-email').value;
-    const pass = document.getElementById('signup-password').value;
-    authService.signUpWithEmail(email, pass)
-        .then(() => alert("Conta criada com sucesso!"))
-        .catch(err => alert("Erro ao cadastrar: " + err.message));
-});
+const formSignup = document.getElementById('form-signup');
+if (formSignup) {
+    formSignup.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('signup-email').value;
+        const pass = document.getElementById('signup-password').value;
+        authService.signUpWithEmail(email, pass)
+            .then(() => alert("Conta criada com sucesso!"))
+            .catch(err => alert("Erro ao cadastrar: " + err.message));
+    });
+}
 
 // Gerenciar estado de Autenticação
 auth.onAuthStateChanged(user => {
@@ -78,16 +86,20 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-btnLoginGoogle.addEventListener('click', () => {
-    auth.signInWithPopup(provider).catch(error => {
-        console.error("Erro no login Google:", error);
-        alert("Erro ao entrar com Google.");
+if (btnLoginGoogle) {
+    btnLoginGoogle.addEventListener('click', () => {
+        auth.signInWithPopup(provider).catch(error => {
+            console.error("Erro no login Google:", error);
+            alert("Erro ao entrar com Google.");
+        });
     });
-});
+}
 
-btnLogout.addEventListener('click', () => {
-    authService.logout();
-});
+if (btnLogout) {
+    btnLogout.addEventListener('click', () => {
+        authService.logout();
+    });
+}
 
 // Navegação entre telas (Bottom Nav)
 const screens = document.querySelectorAll('.screen');
@@ -101,6 +113,10 @@ function showScreen(screenId) {
         btn.classList.toggle('active', btn.dataset.screen === screenId);
     });
     
+    if (screenId === 'dashboard') {
+        loadDashboardData();
+    }
+    
     if (window.navigator.vibrate) {
         window.navigator.vibrate(5);
     }
@@ -111,6 +127,277 @@ function showScreen(screenId) {
 navButtons.forEach(btn => {
     btn.addEventListener('click', () => showScreen(btn.dataset.screen));
 });
+
+// Elementos do Dashboard
+function getDashFilters() {
+    return {
+        month: document.getElementById('dash-filter-month'),
+        year: document.getElementById('dash-filter-year'),
+        category: document.getElementById('dash-filter-category')
+    };
+}
+
+function setupYearFilter() {
+    const { year: yearSelect, month: monthSelect } = getDashFilters();
+    if (!yearSelect) return;
+
+    yearSelect.innerHTML = '';
+    const currentYear = new Date().getFullYear();
+    for (let i = 0; i < 4; i++) {
+        const year = currentYear - i;
+        const opt = document.createElement('option');
+        opt.value = year;
+        opt.textContent = year;
+        yearSelect.appendChild(opt);
+    }
+    
+    if (monthSelect) monthSelect.value = new Date().getMonth();
+    setupFilterListeners();
+}
+
+function setupFilterListeners() {
+    const { month, year, category } = getDashFilters();
+    [month, year, category].forEach(el => {
+        if (el) {
+            el.removeEventListener('change', renderDashboard);
+            el.addEventListener('change', renderDashboard);
+        }
+    });
+}
+
+async function loadDashboardData() {
+    if (!auth.currentUser) return;
+    
+    try {
+        const snapshot = await db.collection('despesas')
+            .where('userId', '==', auth.currentUser.uid)
+            .get();
+
+        currentExpenses = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+        renderDashboard();
+    } catch (error) {
+        console.error("Erro ao carregar dashboard:", error);
+    }
+}
+
+function renderDashboard() {
+    const { month: monthSelect, year: yearSelect, category: categorySelect } = getDashFilters();
+    if (!monthSelect || !yearSelect) return;
+
+    const month = parseInt(monthSelect.value);
+    const year = parseInt(yearSelect.value);
+    const categoryFilter = categorySelect ? categorySelect.value : 'all';
+
+    const filtered = currentExpenses.filter(exp => {
+        const d = new Date(exp.date);
+        const matchMonth = d.getMonth() === month;
+        const matchYear = d.getFullYear() === year;
+        const matchCategory = categoryFilter === 'all' || exp.categoryId === categoryFilter;
+        return matchMonth && matchYear && matchCategory;
+    });
+
+    const total = filtered.reduce((acc, curr) => acc + curr.value, 0);
+    const dashTotalDisplay = document.getElementById('dash-total-value');
+    if (dashTotalDisplay) dashTotalDisplay.textContent = formatCurrency(total);
+    
+    const historyCount = document.getElementById('history-count');
+    if (historyCount) historyCount.textContent = `${filtered.length} itens`;
+
+    renderChart(filtered);
+    renderHistory(filtered);
+}
+
+function renderChart(expenses) {
+    const canvas = document.getElementById('chart-categories');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    const totalsByCategory = {};
+    currentCategories.forEach(cat => totalsByCategory[cat.id] = 0);
+    
+    expenses.forEach(exp => {
+        if (totalsByCategory[exp.categoryId] !== undefined) {
+            totalsByCategory[exp.categoryId] += exp.value;
+        }
+    });
+
+    const labels = currentCategories.map(cat => cat.name);
+    const dataValues = currentCategories.map(cat => totalsByCategory[cat.id]);
+    const limits = currentCategories.map(cat => cat.limit);
+
+    if (categoryChart) categoryChart.destroy();
+
+    categoryChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Gasto Atual',
+                    data: dataValues,
+                    backgroundColor: '#00b894',
+                    borderRadius: 6
+                },
+                {
+                    label: 'Limite',
+                    data: limits,
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b949e' } },
+                x: { grid: { display: false }, ticks: { color: '#8b949e' } }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+}
+
+function renderHistory(expenses) {
+    const list = document.getElementById('history-list');
+    if (!list) return;
+
+    if (expenses.length === 0) {
+        list.innerHTML = '<div class="list-empty">Nenhuma despesa encontrada para este período.</div>';
+        return;
+    }
+
+    list.innerHTML = expenses.map(exp => {
+        const cat = currentCategories.find(c => c.id === exp.categoryId);
+        const pay = currentPaymentMethods.find(p => p.id === exp.paymentMethodId);
+        const date = new Date(exp.date).toLocaleDateString('pt-BR');
+
+        return `
+            <div class="history-item">
+                <div class="history-info">
+                    <span class="history-name">${exp.description}</span>
+                    <div class="history-meta">
+                        <span><i class="bi bi-tag"></i> ${cat ? cat.name : 'Sem Cat.'}</span>
+                        <span><i class="bi bi-calendar3"></i> ${date}</span>
+                        <span><i class="bi bi-credit-card"></i> ${pay ? pay.name : 'N/A'}</span>
+                    </div>
+                </div>
+                <div class="history-value">
+                    <span class="history-amount">${formatCurrency(exp.value)}</span>
+                    <button class="btn-edit-item" onclick="openEditExpenseModal('${exp.id}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function formatCurrency(val) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+}
+
+// Modal de Edição de Despesa
+const modalEditExpense = document.getElementById('modal-edit-expense');
+const formEditExpense = document.getElementById('form-edit-expense');
+const btnDeleteExpense = document.getElementById('btn-delete-expense');
+
+window.openEditExpenseModal = function(id) {
+    const exp = currentExpenses.find(e => e.id === id);
+    if (!exp) return;
+
+    document.getElementById('edit-expense-id').value = id;
+    document.getElementById('edit-reg-value').value = exp.value;
+    document.getElementById('edit-reg-name').value = exp.description;
+    document.getElementById('edit-reg-notes').value = exp.notes || '';
+    document.getElementById('edit-reg-date').value = exp.date.split('T')[0];
+    
+    const radio = document.querySelector(`input[name="edit-reg-type"][value="${exp.type}"]`);
+    if (radio) radio.checked = true;
+
+    const parcelasField = document.getElementById('edit-parcelas-field');
+    if (exp.type === 'parcelado') {
+        parcelasField.classList.remove('hidden');
+        document.getElementById('edit-reg-installments').value = exp.installments || 2;
+    } else {
+        parcelasField.classList.add('hidden');
+    }
+
+    populateEditSelects(exp.categoryId, exp.paymentMethodId);
+    if (modalEditExpense) modalEditExpense.classList.add('active');
+};
+
+function populateEditSelects(selectedCat, selectedPay) {
+    const catSelect = document.getElementById('edit-reg-category');
+    const paySelect = document.getElementById('edit-reg-payment-method');
+    if (!catSelect || !paySelect) return;
+
+    catSelect.innerHTML = currentCategories.map(cat => 
+        `<option value="${cat.id}" ${cat.id === selectedCat ? 'selected' : ''}>${cat.name}</option>`
+    ).join('');
+
+    paySelect.innerHTML = currentPaymentMethods.map(pay => 
+        `<option value="${pay.id}" ${pay.id === selectedPay ? 'selected' : ''}>${pay.name}</option>`
+    ).join('');
+}
+
+document.querySelectorAll('input[name="edit-reg-type"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        const parcelasField = document.getElementById('edit-parcelas-field');
+        if (e.target.value === 'parcelado') {
+            parcelasField.classList.remove('hidden');
+        } else {
+            parcelasField.classList.add('hidden');
+        }
+    });
+});
+
+if (formEditExpense) {
+    formEditExpense.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-expense-id').value;
+        const data = {
+            value: parseFloat(document.getElementById('edit-reg-value').value),
+            description: document.getElementById('edit-reg-name').value,
+            notes: document.getElementById('edit-reg-notes').value,
+            date: new Date(document.getElementById('edit-reg-date').value + 'T12:00:00').toISOString(),
+            type: document.querySelector('input[name="edit-reg-type"]:checked').value,
+            categoryId: document.getElementById('edit-reg-category').value,
+            paymentMethodId: document.getElementById('edit-reg-payment-method').value
+        };
+        if (data.type === 'parcelado') {
+            data.installments = parseInt(document.getElementById('edit-reg-installments').value);
+        }
+        try {
+            await db.collection('despesas').doc(id).update(data);
+            modalEditExpense.classList.remove('active');
+            loadDashboardData();
+        } catch (error) {
+            alert("Erro ao atualizar: " + error.message);
+        }
+    });
+}
+
+if (btnDeleteExpense) {
+    btnDeleteExpense.addEventListener('click', async () => {
+        const id = document.getElementById('edit-expense-id').value;
+        if (!confirm("Excluir esta despesa permanentemente?")) return;
+        try {
+            await db.collection('despesas').doc(id).delete();
+            modalEditExpense.classList.remove('active');
+            loadDashboardData();
+        } catch (error) {
+            alert("Erro ao excluir: " + error.message);
+        }
+    });
+}
 
 // Lógica do formulário de cadastro
 const formRegister = document.getElementById('form-register');
@@ -127,66 +414,67 @@ regTypeRadios.forEach(radio => {
     });
 });
 
-formRegister.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!auth.currentUser) return;
-
-    const categoryId = document.getElementById('reg-category').value;
-    const paymentMethodId = document.getElementById('reg-payment-method').value;
-
-    if (!categoryId || !paymentMethodId) {
-        alert("Por favor, selecione uma Categoria e uma Forma de Pagamento antes de registrar.");
-        return;
-    }
-
-    const btnSubmit = formRegister.querySelector('button[type="submit"]');
-    const originalText = btnSubmit.textContent;
-
-    const data = {
-        value: parseFloat(document.getElementById('reg-value').value),
-        type: document.querySelector('input[name="reg-type"]:checked').value,
-        paymentMethodId: paymentMethodId,
-        description: document.getElementById('reg-name').value,
-        categoryId: categoryId,
-        notes: document.getElementById('reg-notes').value,
-        date: new Date().toISOString(),
-        userId: auth.currentUser.uid,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-
-    if (data.type === 'parcelado') {
-        data.installments = parseInt(document.getElementById('reg-installments').value);
-    }
-
-    try {
-        btnSubmit.disabled = true;
-        btnSubmit.textContent = "Salvando...";
-        
-        await db.collection('despesas').add(data);
-        
-        alert("Despesa registrada com sucesso!");
-        formRegister.reset();
-        parcelasField.classList.add('hidden');
-        if (progressContainer) progressContainer.classList.add('hidden');
-        showScreen('dashboard'); // Direciona para o dashboard após o cadastro
-    } catch (error) {
-        alert("Erro ao registrar: " + error.message);
-    } finally {
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = originalText;
-    }
-});
+if (formRegister) {
+    formRegister.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!auth.currentUser) return;
+        const categoryId = document.getElementById('reg-category').value;
+        const paymentMethodId = document.getElementById('reg-payment-method').value;
+        if (!categoryId || !paymentMethodId) {
+            alert("Por favor, selecione uma Categoria e uma Forma de Pagamento.");
+            return;
+        }
+        const btnSubmit = formRegister.querySelector('button[type="submit"]');
+        const originalText = btnSubmit.textContent;
+        const data = {
+            value: parseFloat(document.getElementById('reg-value').value),
+            type: document.querySelector('input[name="reg-type"]:checked').value,
+            paymentMethodId: paymentMethodId,
+            description: document.getElementById('reg-name').value,
+            categoryId: categoryId,
+            notes: document.getElementById('reg-notes').value,
+            date: new Date().toISOString(),
+            userId: auth.currentUser.uid,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if (data.type === 'parcelado') {
+            data.installments = parseInt(document.getElementById('reg-installments').value);
+        }
+        try {
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = "Salvando...";
+            await db.collection('despesas').add(data);
+            alert("Despesa registrada com sucesso!");
+            formRegister.reset();
+            parcelasField.classList.add('hidden');
+            if (progressContainer) progressContainer.classList.add('hidden');
+            showScreen('dashboard');
+        } catch (error) {
+            alert("Erro ao registrar: " + error.message);
+        } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = originalText;
+        }
+    });
+}
 
 async function loadAllSettings() {
     if (!settingsService) return;
-    
     try {
         currentCategories = await settingsService.getCategories();
         currentPaymentMethods = await settingsService.getPaymentMethods();
         currentFixedDebts = await settingsService.getFixedDebts();
         
+        const { category: dashFilterCategory } = getDashFilters();
+        if (dashFilterCategory) {
+            dashFilterCategory.innerHTML = '<option value="all">Todas</option>' + 
+                currentCategories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
+        }
         renderSettingsLists();
         populateSelects();
+        if (document.getElementById('screen-dashboard').classList.contains('active')) {
+            loadDashboardData();
+        }
     } catch (error) {
         console.error("Erro ao carregar configurações:", error);
     }
@@ -200,11 +488,11 @@ function renderSettingsLists() {
 
 function renderList(elementId, items, type) {
     const list = document.getElementById(elementId);
+    if (!list) return;
     if (items.length === 0) {
         list.innerHTML = '<div class="list-empty">Nenhum item cadastrado.</div>';
         return;
     }
-    
     list.innerHTML = items.map(item => `
         <div class="settings-item">
             <div class="item-info">
@@ -216,8 +504,6 @@ function renderList(elementId, items, type) {
             </button>
         </div>
     `).join('');
-
-    // Eventos de edição
     list.querySelectorAll('.btn-edit-item').forEach(btn => {
         btn.addEventListener('click', () => {
             const id = btn.dataset.id;
@@ -242,66 +528,57 @@ function getDetailsByType(type, item) {
 function populateSelects() {
     const catSelect = document.getElementById('reg-category');
     const paySelect = document.getElementById('reg-payment-method');
-
     if (!catSelect || !paySelect) return;
-
     catSelect.innerHTML = '<option value="">Selecione...</option>';
     paySelect.innerHTML = '<option value="">Selecione...</option>';
-
     currentCategories.forEach(cat => {
         const opt = document.createElement('option');
         opt.value = cat.id;
         opt.textContent = cat.name;
         catSelect.appendChild(opt);
     });
-
     currentPaymentMethods.forEach(pay => {
         const opt = document.createElement('option');
-        opt.value = pay.id; // Agora usamos o ID do documento
+        opt.value = pay.id;
         opt.textContent = pay.name;
         paySelect.appendChild(opt);
     });
 }
 
-// Lógica da Barra de Progresso da Categoria
-const catSelect = document.getElementById('reg-category');
+const catSelectProgress = document.getElementById('reg-category');
 const progressContainer = document.getElementById('category-progress-container');
 const progressFill = document.getElementById('progress-fill');
 const progSpent = document.getElementById('prog-spent');
 const progTotal = document.getElementById('prog-total');
 const progText = document.getElementById('prog-text');
 
-catSelect.addEventListener('change', (e) => {
-    const cat = currentCategories.find(c => c.id === e.target.value);
-    
-    if (cat) {
-        progressContainer.classList.remove('hidden');
-        
-        // No momento mockamos o gasto como 0 ou buscamos de um dashboard real depois
-        const spent = cat.spent || 0; 
-        const remaining = cat.limit - spent;
-        const percent = Math.min(100, Math.round((spent / cat.limit) * 100));
-        
-        progSpent.textContent = `Gasto: R$ ${spent.toFixed(2)}`;
-        progTotal.textContent = `Limite: R$ ${cat.limit.toFixed(2)}`;
-        progressFill.style.width = `${percent}%`;
-        
-        if (percent >= 100) {
-            progressFill.style.backgroundColor = '#ff7675';
-            progText.textContent = `Atenção: Limite atingido!`;
-        } else if (percent > 85) {
-            progressFill.style.backgroundColor = '#fdcb6e';
-            progText.textContent = `Quase lá: Restam R$ ${remaining.toFixed(2)}`;
+if (catSelectProgress) {
+    catSelectProgress.addEventListener('change', (e) => {
+        const cat = currentCategories.find(c => c.id === e.target.value);
+        if (cat) {
+            progressContainer.classList.remove('hidden');
+            const spent = cat.spent || 0; 
+            const remaining = cat.limit - spent;
+            const percent = Math.min(100, Math.round((spent / cat.limit) * 100));
+            progSpent.textContent = `Gasto: R$ ${spent.toFixed(2)}`;
+            progTotal.textContent = `Limite: R$ ${cat.limit.toFixed(2)}`;
+            progressFill.style.width = `${percent}%`;
+            if (percent >= 100) {
+                progressFill.style.backgroundColor = '#ff7675';
+                progText.textContent = `Atenção: Limite atingido!`;
+            } else if (percent > 85) {
+                progressFill.style.backgroundColor = '#fdcb6e';
+                progText.textContent = `Quase lá: Restam R$ ${remaining.toFixed(2)}`;
+            } else {
+                progressFill.style.backgroundColor = '#00b894';
+                progText.textContent = `Equilibrado: Restam R$ ${remaining.toFixed(2)}`;
+            }
         } else {
-            progressFill.style.backgroundColor = '#00b894';
-            progText.textContent = `Equilibrado: Restam R$ ${remaining.toFixed(2)}`;
+            progressContainer.classList.add('hidden');
         }
-    } else {
-        progressContainer.classList.add('hidden');
-    }
-});
+    });
+}
 
-// Lógica da Tela de Ajustes e Modal
 const modalSettings = document.getElementById('modal-settings');
 const formSettings = document.getElementById('form-settings');
 const btnDeleteSettingsItem = document.getElementById('btn-delete-settings-item');
@@ -314,17 +591,11 @@ function openSettingsModal(type, item = null) {
     const title = document.getElementById('modal-settings-title');
     const itemId = document.getElementById('settings-item-id');
     const itemType = document.getElementById('settings-item-type');
-    
     itemType.value = type;
     itemId.value = item ? item.id : '';
     title.textContent = item ? `Editar ${getLabel(type)}` : `Nova ${getLabel(type)}`;
-    
-    if (item) {
-        btnDeleteSettingsItem.classList.remove('hidden');
-    } else {
-        btnDeleteSettingsItem.classList.add('hidden');
-    }
-    
+    if (item) btnDeleteSettingsItem.classList.remove('hidden');
+    else btnDeleteSettingsItem.classList.add('hidden');
     generateSettingsFields(type, item || {});
     modalSettings.classList.add('active');
 }
@@ -338,53 +609,30 @@ function getLabel(type) {
 
 function generateSettingsFields(type, data = {}) {
     const container = document.getElementById('settings-fields-container');
+    if (!container) return;
     container.innerHTML = '';
-    
     if (type === 'category') {
         container.innerHTML = `
-            <div class="field-group span-2">
-                <label>Nome da Categoria</label>
-                <input type="text" id="cat-name" value="${data.name || ''}" required>
-            </div>
-            <div class="field-group span-2">
-                <label>Limite Mensal (R$)</label>
-                <input type="number" id="cat-limit" step="0.01" value="${data.limit || ''}" required>
-            </div>
+            <div class="field-group span-2"><label>Nome</label><input type="text" id="cat-name" value="${data.name || ''}" required></div>
+            <div class="field-group span-2"><label>Limite (R$)</label><input type="number" id="cat-limit" step="0.01" value="${data.limit || ''}" required></div>
         `;
     } else if (type === 'paymentMethod') {
         container.innerHTML = `
-            <div class="field-group span-2">
-                <label>Nome da Forma</label>
-                <input type="text" id="pay-name" value="${data.name || ''}" required>
-            </div>
-            <div class="field-group span-2">
-                <label>Tipo</label>
-                <select id="pay-type" required>
-                    <option value="debito" ${data.type === 'debito' ? 'selected' : ''}>Débito / Pix / Dinheiro</option>
-                    <option value="credito" ${data.type === 'credito' ? 'selected' : ''}>Cartão de Crédito</option>
-                    <option value="boleto" ${data.type === 'boleto' ? 'selected' : ''}>Boleto</option>
-                </select>
-            </div>
+            <div class="field-group span-2"><label>Nome</label><input type="text" id="pay-name" value="${data.name || ''}" required></div>
+            <div class="field-group span-2"><label>Tipo</label><select id="pay-type" required>
+                <option value="debito" ${data.type === 'debito' ? 'selected' : ''}>Débito / Pix / Dinheiro</option>
+                <option value="credito" ${data.type === 'credito' ? 'selected' : ''}>Cartão de Crédito</option>
+                <option value="boleto" ${data.type === 'boleto' ? 'selected' : ''}>Boleto</option>
+            </select></div>
             <div id="credit-fields" class="input-grid span-2 ${data.type === 'credito' ? '' : 'hidden'}">
-                <div class="field-group">
-                    <label>Início Fatura (Dia)</label>
-                    <input type="number" id="pay-start" min="1" max="31" value="${data.startDay || ''}">
-                </div>
-                <div class="field-group">
-                    <label>Fim Fatura (Dia)</label>
-                    <input type="number" id="pay-end" min="1" max="31" value="${data.endDay || ''}">
-                </div>
-                <div class="field-group span-2">
-                    <label>Dia Pagamento</label>
-                    <input type="number" id="pay-day" min="1" max="31" value="${data.paymentDay || ''}">
-                </div>
+                <div class="field-group"><label>Início (Dia)</label><input type="number" id="pay-start" min="1" max="31" value="${data.startDay || ''}"></div>
+                <div class="field-group"><label>Fim (Dia)</label><input type="number" id="pay-end" min="1" max="31" value="${data.endDay || ''}"></div>
+                <div class="field-group span-2"><label>Dia Pagamento</label><input type="number" id="pay-day" min="1" max="31" value="${data.paymentDay || ''}"></div>
             </div>
             <div id="boleto-fields" class="field-group span-2 ${data.type === 'boleto' ? '' : 'hidden'}">
-                <label>Dia do Vencimento</label>
-                <input type="number" id="pay-due" min="1" max="31" value="${data.dueDay || ''}">
+                <label>Dia Vencimento</label><input type="number" id="pay-due" min="1" max="31" value="${data.dueDay || ''}">
             </div>
         `;
-        
         const payType = document.getElementById('pay-type');
         payType.addEventListener('change', (e) => {
             document.getElementById('credit-fields').classList.toggle('hidden', e.target.value !== 'credito');
@@ -392,94 +640,68 @@ function generateSettingsFields(type, data = {}) {
         });
     } else if (type === 'fixedDebt') {
         container.innerHTML = `
-            <div class="field-group span-2">
-                <label>Nome da Dívida</label>
-                <input type="text" id="debt-name" value="${data.name || ''}" required>
-            </div>
-            <div class="field-group">
-                <label>Valor (R$)</label>
-                <input type="number" id="debt-value" step="0.01" value="${data.value || ''}" required>
-            </div>
-            <div class="field-group">
-                <label>Dia do Pagamento</label>
-                <input type="number" id="debt-day" min="1" max="31" value="${data.paymentDay || ''}" required>
-            </div>
-            <div class="field-group span-2">
-                <label>Anotações</label>
-                <textarea id="debt-notes">${data.notes || ''}</textarea>
-            </div>
+            <div class="field-group span-2"><label>Nome</label><input type="text" id="debt-name" value="${data.name || ''}" required></div>
+            <div class="field-group"><label>Valor (R$)</label><input type="number" id="debt-value" step="0.01" value="${data.value || ''}" required></div>
+            <div class="field-group"><label>Dia</label><input type="number" id="debt-day" min="1" max="31" value="${data.paymentDay || ''}" required></div>
+            <div class="field-group span-2"><label>Notas</label><textarea id="debt-notes">${data.notes || ''}</textarea></div>
         `;
     }
 }
 
-formSettings.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!settingsService) return;
-    
-    const id = document.getElementById('settings-item-id').value;
-    const type = document.getElementById('settings-item-type').value;
-    
-    // Objeto de dados SEM o campo 'id' interno para não sujar o documento
-    let data = {};
-    
-    if (type === 'category') {
-        data.name = document.getElementById('cat-name').value;
-        data.limit = parseFloat(document.getElementById('cat-limit').value);
-    } else if (type === 'paymentMethod') {
-        data.name = document.getElementById('pay-name').value;
-        data.type = document.getElementById('pay-type').value;
-        if (data.type === 'credito') {
-            data.startDay = parseInt(document.getElementById('pay-start').value);
-            data.endDay = parseInt(document.getElementById('pay-end').value);
-            data.paymentDay = parseInt(document.getElementById('pay-day').value);
-        } else if (data.type === 'boleto') {
-            data.dueDay = parseInt(document.getElementById('pay-due').value);
+if (formSettings) {
+    formSettings.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('settings-item-id').value;
+        const type = document.getElementById('settings-item-type').value;
+        let data = {};
+        if (type === 'category') {
+            data.name = document.getElementById('cat-name').value;
+            data.limit = parseFloat(document.getElementById('cat-limit').value);
+        } else if (type === 'paymentMethod') {
+            data.name = document.getElementById('pay-name').value;
+            data.type = document.getElementById('pay-type').value;
+            if (data.type === 'credito') {
+                data.startDay = parseInt(document.getElementById('pay-start').value);
+                data.endDay = parseInt(document.getElementById('pay-end').value);
+                data.paymentDay = parseInt(document.getElementById('pay-day').value);
+            } else if (data.type === 'boleto') data.dueDay = parseInt(document.getElementById('pay-due').value);
+        } else if (type === 'fixedDebt') {
+            data.name = document.getElementById('debt-name').value;
+            data.value = parseFloat(document.getElementById('debt-value').value);
+            data.paymentDay = parseInt(document.getElementById('debt-day').value);
+            data.notes = document.getElementById('debt-notes').value;
         }
-    } else if (type === 'fixedDebt') {
-        data.name = document.getElementById('debt-name').value;
-        data.value = parseFloat(document.getElementById('debt-value').value);
-        data.paymentDay = parseInt(document.getElementById('debt-day').value);
-        data.notes = document.getElementById('debt-notes').value;
-    }
-    
-    try {
-        // Passamos o ID separadamente para o serviço decidir entre add ou update
-        const itemWithId = { ...data, id: id || null };
+        try {
+            const itemWithId = { ...data, id: id || null };
+            if (type === 'category') await settingsService.saveCategory(itemWithId);
+            if (type === 'paymentMethod') await settingsService.savePaymentMethod(itemWithId);
+            if (type === 'fixedDebt') await settingsService.saveFixedDebt(itemWithId);
+            modalSettings.classList.remove('active');
+            loadAllSettings();
+        } catch (error) { alert("Erro ao salvar: " + error.message); }
+    });
+}
 
-        if (type === 'category') await settingsService.saveCategory(itemWithId);
-        if (type === 'paymentMethod') await settingsService.savePaymentMethod(itemWithId);
-        if (type === 'fixedDebt') await settingsService.saveFixedDebt(itemWithId);
-        
-        modalSettings.classList.remove('active');
-        loadAllSettings();
-    } catch (error) {
-        alert("Erro ao salvar: " + error.message);
-    }
-});
+if (btnDeleteSettingsItem) {
+    btnDeleteSettingsItem.addEventListener('click', async () => {
+        if (!settingsService || !confirm("Tem certeza?")) return;
+        const id = document.getElementById('settings-item-id').value;
+        const type = document.getElementById('settings-item-type').value;
+        try {
+            if (type === 'category') await settingsService.deleteCategory(id);
+            if (type === 'paymentMethod') await settingsService.deletePaymentMethod(id);
+            if (type === 'fixedDebt') await settingsService.deleteFixedDebt(id);
+            modalSettings.classList.remove('active');
+            loadAllSettings();
+        } catch (error) { alert("Erro ao excluir: " + error.message); }
+    });
+}
 
-btnDeleteSettingsItem.addEventListener('click', async () => {
-    if (!settingsService || !confirm("Tem certeza que deseja excluir?")) return;
-    
-    const id = document.getElementById('settings-item-id').value;
-    const type = document.getElementById('settings-item-type').value;
-    
-    try {
-        if (type === 'category') await settingsService.deleteCategory(id);
-        if (type === 'paymentMethod') await settingsService.deletePaymentMethod(id);
-        if (type === 'fixedDebt') await settingsService.deleteFixedDebt(id);
-        
-        modalSettings.classList.remove('active');
-        loadAllSettings();
-    } catch (error) {
-        alert("Erro ao excluir: " + error.message);
-    }
-});
-
-// Fechar modais genérico
 document.querySelectorAll('.close-modal, .modal').forEach(el => {
     el.addEventListener('click', (e) => {
         if (e.target === el || el.classList.contains('close-modal') || el.closest('.close-modal')) {
-            el.closest('.modal').classList.remove('active');
+            const modal = el.closest('.modal');
+            if (modal) modal.classList.remove('active');
         }
     });
 });
@@ -488,89 +710,71 @@ document.querySelectorAll('.modal-content').forEach(content => {
     content.addEventListener('click', (e) => e.stopPropagation());
 });
 
-// Lógica de Importação em Lote
 const btnOpenImport = document.getElementById('btn-open-import');
 const modalImport = document.getElementById('modal-import');
 const btnProcessImport = document.getElementById('btn-process-import');
 const importTextarea = document.getElementById('import-text');
 const importStatus = document.getElementById('import-status');
 
-btnOpenImport.addEventListener('click', () => {
-    modalImport.classList.add('active');
-    importStatus.textContent = '';
-    importStatus.className = 'import-status';
-});
-
-async function processarImportacao() {
-    const texto = importTextarea.value.trim();
-    const despesas = ImportService.parseTSV(texto);
-
-    if (despesas.length === 0) {
-        importStatus.textContent = "Nenhum dado válido encontrado para importar.";
-        importStatus.className = "import-status error";
-        return;
-    }
-
-    btnProcessImport.disabled = true;
-    btnProcessImport.textContent = "Processando...";
-    importStatus.textContent = `Iniciando importação de ${despesas.length} registros...`;
-    importStatus.className = "import-status";
-
-    const db = firebase.firestore();
-    let sucessos = 0;
-    let erros = 0;
-
-    for (const despesa of despesas) {
-        try {
-            await db.collection('despesas').add({
-                ...despesa,
-                importado: true,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                userId: auth.currentUser.uid
-            });
-            sucessos++;
-            importStatus.textContent = `Progresso: ${sucessos} de ${despesas.length} importados...`;
-        } catch (error) {
-            console.error("Erro ao importar item:", error);
-            erros++;
+if (btnOpenImport) {
+    btnOpenImport.addEventListener('click', () => {
+        if (modalImport) {
+            modalImport.classList.add('active');
+            importStatus.textContent = '';
+            importStatus.className = 'import-status';
         }
-    }
-
-    btnProcessImport.disabled = false;
-    btnProcessImport.textContent = "Iniciar Importação";
-    importStatus.textContent = `Concluído! Sucessos: ${sucessos}, Erros: ${erros}`;
-    importStatus.className = sucessos > 0 ? "import-status success" : "import-status error";
-    
-    if (sucessos > 0) {
-        importTextarea.value = '';
-        setTimeout(() => modalImport.classList.remove('active'), 2000);
-    }
-}
-
-btnProcessImport.addEventListener('click', processarImportacao);
-
-// PWA: Service Worker registration
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').then(reg => {
-            console.log('SW registrado!', reg);
-        }).catch(err => {
-            console.error('SW falhou!', err);
-        });
     });
 }
 
-// Atualizar exibição do total gasto
+if (btnProcessImport) {
+    btnProcessImport.addEventListener('click', async () => {
+        const texto = importTextarea.value.trim();
+        const despesas = ImportService.parseTSV(texto);
+        if (despesas.length === 0) {
+            importStatus.textContent = "Nenhum dado válido.";
+            importStatus.className = "import-status error";
+            return;
+        }
+        btnProcessImport.disabled = true;
+        btnProcessImport.textContent = "Processando...";
+        let sucessos = 0;
+        for (const despesa of despesas) {
+            try {
+                await db.collection('despesas').add({
+                    ...despesa,
+                    importado: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    userId: auth.currentUser.uid
+                });
+                sucessos++;
+                importStatus.textContent = `Progresso: ${sucessos} de ${despesas.length}...`;
+            } catch (error) { console.error("Erro import:", error); }
+        }
+        btnProcessImport.disabled = false;
+        btnProcessImport.textContent = "Iniciar Importação";
+        importStatus.textContent = `Concluído! Sucessos: ${sucessos}`;
+        if (sucessos > 0) {
+            importTextarea.value = '';
+            setTimeout(() => modalImport.classList.remove('active'), 2000);
+        }
+    });
+}
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.error('SW falhou!', err));
+    });
+}
+
 function updateTotalDisplay(value) {
-    const formatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-    
+    const formatted = formatCurrency(value);
     const mainTotal = document.getElementById('main-total-spent');
     if (mainTotal) mainTotal.textContent = formatted;
 }
 
 // Start
 document.addEventListener('DOMContentLoaded', () => {
-    // Inicia na tela de cadastro como solicitado
+    setupYearFilter();
     showScreen('register');
     updateTotalDisplay(0);
 });
