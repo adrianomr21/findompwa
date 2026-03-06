@@ -456,4 +456,137 @@ input:focus, select:focus { border-color: var(--accent); }
 .import-status.success { color: var(--accent); }
 .import-status.error { color: #ff7675; }
 
+/* Ajustes / Settings Screen */
+.settings-container {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    width: 100%;
+}
+
+.settings-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+}
+
+.group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.group-header h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.group-header h3 i {
+    color: var(--accent);
+}
+
+.btn-add-item {
+    background: rgba(0, 184, 148, 0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0, 184, 148, 0.2);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-add-item:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.list-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    padding: 20px 0;
+}
+
+.settings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: 0.2s;
+}
+
+.settings-item:hover {
+    border-color: var(--text-muted);
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.item-name {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.item-details {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.btn-edit-item {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: 0.2s;
+}
+
+.btn-edit-item:hover {
+    color: var(--accent);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-danger {
+    background: rgba(255, 118, 117, 0.1);
+    color: #ff7675;
+    border: 1px solid rgba(255, 118, 117, 0.2);
+    padding: 18px;
+    border-radius: var(--radius);
+    font-weight: 700;
+    width: 100%;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-top: 10px;
+    transition: 0.2s;
+}
+
+.btn-danger:hover {
+    background: #ff7675;
+    color: white;
+}
+
 .hidden { display: none !important; }

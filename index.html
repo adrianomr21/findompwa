@@ -194,10 +194,77 @@
             </section>
 
             <section id="screen-settings" class="screen">
-                <header class="section-header"><h1>Ajustes do Sistema</h1></header>
-                <div class="settings-grid"></div>
+                <header class="section-header">
+                    <h1>Ajustes</h1>
+                    <p>Gerencie categorias, pagamentos e dívidas</p>
+                </header>
+
+                <div class="settings-container">
+                    <!-- Categorias -->
+                    <div class="settings-group">
+                        <div class="group-header">
+                            <h3><i class="bi bi-tags"></i> Categorias</h3>
+                            <button class="btn-add-item" id="btn-add-category">
+                                <i class="bi bi-plus-lg"></i> Adicionar
+                            </button>
+                        </div>
+                        <div id="list-categories" class="settings-list">
+                            <div class="list-empty">Nenhuma categoria cadastrada.</div>
+                        </div>
+                    </div>
+
+                    <!-- Formas de Pagamento -->
+                    <div class="settings-group">
+                        <div class="group-header">
+                            <h3><i class="bi bi-wallet2"></i> Formas de Pagamento</h3>
+                            <button class="btn-add-item" id="btn-add-payment-method">
+                                <i class="bi bi-plus-lg"></i> Adicionar
+                            </button>
+                        </div>
+                        <div id="list-payment-methods" class="settings-list">
+                            <div class="list-empty">Nenhuma forma de pagamento cadastrada.</div>
+                        </div>
+                    </div>
+
+                    <!-- Dívidas Fixas -->
+                    <div class="settings-group">
+                        <div class="group-header">
+                            <h3><i class="bi bi-calendar-check"></i> Dívidas Fixas</h3>
+                            <button class="btn-add-item" id="btn-add-fixed-debt">
+                                <i class="bi bi-plus-lg"></i> Adicionar
+                            </button>
+                        </div>
+                        <div id="list-fixed-debts" class="settings-list">
+                            <div class="list-empty">Nenhuma dívida fixa cadastrada.</div>
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
+    </div>
+
+    <!-- Modal de Edição (Genérico para Ajustes) -->
+    <div id="modal-settings" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 id="modal-settings-title">Editar Item</h3>
+                <button class="close-modal"><i class="bi bi-x-lg"></i></button>
+            </header>
+            
+            <form id="form-settings">
+                <input type="hidden" id="settings-item-id">
+                <input type="hidden" id="settings-item-type">
+                
+                <div id="settings-fields-container" class="input-grid">
+                    <!-- Campos dinâmicos aqui -->
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-main">Salvar Alterações</button>
+                    <button type="button" id="btn-delete-settings-item" class="btn-danger hidden">Excluir</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Scripts -->
