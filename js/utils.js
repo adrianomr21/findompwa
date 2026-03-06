@@ -41,15 +41,16 @@ export function calculateDueDate(purchaseDate, paymentMethod) {
     if (isNaN(date.getTime())) return new Date().toISOString();
 
     let due = new Date(date);
-    due.setHours(12, 0, 0, 0); // Normalizar para meio-dia para evitar problemas de fuso
+    due.setHours(12, 0, 0, 0);
 
     if (!paymentMethod) return due.toISOString();
 
+    // 1. Débito / Pix / Dinheiro (À Vista)
     if (paymentMethod.type === 'debito') {
-        // À vista / Débito: Vencimento é o dia da compra
         return due.toISOString();
     }
 
+    // 2. Boleto (Sem ciclo, apenas dia fixo)
     if (paymentMethod.type === 'boleto') {
         const dueDay = paymentMethod.dueDay || date.getDate();
         due.setDate(dueDay);
@@ -59,27 +60,37 @@ export function calculateDueDate(purchaseDate, paymentMethod) {
         return due.toISOString();
     }
 
+    // 3. Cartão de Crédito (Com ciclo de fechamento)
     if (paymentMethod.type === 'credito') {
-        const endDay = paymentMethod.endDay; // Fechamento
-        const paymentDay = paymentMethod.paymentDay; // Vencimento da fatura
+        const endDay = paymentMethod.endDay; // Dia de fechamento (ex: 23)
+        const paymentDay = paymentMethod.paymentDay; // Dia de vencimento (ex: 05)
 
-        // Se não houver configuração completa, assume o dia do pagamento no mês atual ou seguinte
         if (!paymentDay) return due.toISOString();
 
-        due.setDate(paymentDay);
-
-        // Lógica: se o dia da compra for após o fechamento, o vencimento é no mês seguinte ao ciclo normal
-        // Se o paymentDay < endDay (ex: fecha 25, vence 05), o vencimento já seria naturalmente no mês seguinte.
+        // Determinar o mês de fechamento da fatura
+        let closingMonthDate = new Date(date);
+        closingMonthDate.setHours(12, 0, 0, 0);
 
         if (endDay) {
+            // Se o dia da compra passou do dia de fechamento, cai no ciclo do mês seguinte
             if (date.getDate() > endDay) {
-                // Compra após o fechamento -> Cai na próxima fatura
-                due.setMonth(due.getMonth() + 1);
+                closingMonthDate.setMonth(closingMonthDate.getMonth() + 1);
             }
         }
 
-        // Se o dia de pagamento for menor que o dia da compra (e não foi movido pelo fechamento),
-        // significa que o vencimento é no próximo mês
+        // Definir a data de vencimento baseada no mês de fechamento
+        due = new Date(closingMonthDate);
+        due.setDate(paymentDay);
+
+        // Se o dia de pagamento for menor ou igual ao dia de fechamento,
+        // o vencimento é no mês seguinte ao fechamento da fatura.
+        // Ex: Fecha dia 23/03, Vence dia 05/04.
+        if (endDay && paymentDay <= endDay) {
+            due.setMonth(due.getMonth() + 1);
+        }
+
+        // Garantia para formas sem ciclo definido (endDay vazio): 
+        // Se o vencimento calculado ficou no passado em relação à compra, pula para o próximo mês
         if (due.getTime() < date.getTime()) {
             due.setMonth(due.getMonth() + 1);
         }
