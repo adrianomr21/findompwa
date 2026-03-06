@@ -2,7 +2,7 @@ import firebaseConfig from './firebase-config.js';
 import { AuthService } from './auth-service.js';
 import { ImportService } from './import-service.js';
 import { SettingsService } from './settings-service.js';
-import { formatCurrency, getInstallmentStatus } from './utils.js';
+import { formatCurrency, getInstallmentStatus, calculateDueDate } from './utils.js';
 
 // Inicializar Firebase
 if (!firebase.apps.length) {
@@ -199,30 +199,38 @@ function renderDashboard() {
 
     currentExpenses.forEach(exp => {
         const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
-        
+        const baseDate = exp.dueDate || exp.date;
+
         if (isParcelado) {
-            const currentInst = getInstallmentStatus(exp.date, exp.installments, filterMonth, filterYear);
+            const currentInst = getInstallmentStatus(baseDate, exp.installments, filterMonth, filterYear);
             
             if (currentInst) {
                 const matchCategory = categoryFilter === 'all' || exp.categoryId === categoryFilter;
                 const matchPayment = paymentFilter === 'all' || exp.paymentMethodId === paymentFilter;
                 
                 if (matchCategory && matchPayment) {
+                    const displayDate = new Date(baseDate);
+                    displayDate.setMonth(displayDate.getMonth() + (currentInst - 1));
+                    
                     filtered.push({
                         ...exp,
-                        currentInstallment: currentInst
+                        currentInstallment: currentInst,
+                        displayDate: displayDate.toISOString()
                     });
                 }
             }
         } else {
-            const startDate = new Date(exp.date);
+            const startDate = new Date(baseDate);
             const matchMonth = startDate.getMonth() === filterMonth;
             const matchYear = startDate.getFullYear() === filterYear;
             const matchCategory = categoryFilter === 'all' || exp.categoryId === categoryFilter;
             const matchPayment = paymentFilter === 'all' || exp.paymentMethodId === paymentFilter;
             
             if (matchMonth && matchYear && matchCategory && matchPayment) {
-                filtered.push(exp);
+                filtered.push({
+                    ...exp,
+                    displayDate: baseDate
+                });
             }
         }
     });
@@ -305,7 +313,7 @@ function renderHistory(expenses) {
     list.innerHTML = expenses.map(exp => {
         const cat = currentCategories.find(c => c.id === exp.categoryId);
         const pay = currentPaymentMethods.find(p => p.id === exp.paymentMethodId);
-        const date = new Date(exp.date).toLocaleDateString('pt-BR');
+        const displayDate = new Date(exp.displayDate || exp.date).toLocaleDateString('pt-BR');
         
         // Badge de Parcela
         const installmentBadge = exp.currentInstallment 
@@ -318,7 +326,7 @@ function renderHistory(expenses) {
                     <span class="history-name">${exp.description} ${installmentBadge}</span>
                     <div class="history-meta">
                         <span><i class="bi bi-tag"></i> ${cat ? cat.name : 'Sem Cat.'}</span>
-                        <span><i class="bi bi-calendar3"></i> ${date}</span>
+                        <span><i class="bi bi-calendar3"></i> ${displayDate}</span>
                         <span><i class="bi bi-credit-card"></i> ${pay ? pay.name : 'N/A'}</span>
                     </div>
                 </div>
@@ -392,14 +400,19 @@ if (formEditExpense) {
     formEditExpense.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('edit-expense-id').value;
+        const paymentMethodId = document.getElementById('edit-reg-payment-method').value;
+        const payMethod = currentPaymentMethods.find(p => p.id === paymentMethodId);
+        const purchaseDate = new Date(document.getElementById('edit-reg-date').value + 'T12:00:00').toISOString();
+
         const data = {
             value: parseFloat(document.getElementById('edit-reg-value').value),
             description: document.getElementById('edit-reg-name').value,
             notes: document.getElementById('edit-reg-notes').value,
-            date: new Date(document.getElementById('edit-reg-date').value + 'T12:00:00').toISOString(),
+            date: purchaseDate,
+            dueDate: calculateDueDate(purchaseDate, payMethod),
             type: document.querySelector('input[name="edit-reg-type"]:checked').value,
             categoryId: document.getElementById('edit-reg-category').value,
-            paymentMethodId: document.getElementById('edit-reg-payment-method').value
+            paymentMethodId: paymentMethodId
         };
         if (data.type === 'parcelado') {
             data.installments = parseInt(document.getElementById('edit-reg-installments').value);
@@ -455,6 +468,11 @@ if (formRegister) {
         }
         const btnSubmit = formRegister.querySelector('button[type="submit"]');
         const originalText = btnSubmit.textContent;
+        
+        const payMethod = currentPaymentMethods.find(p => p.id === paymentMethodId);
+        const now = new Date();
+        const purchaseDate = now.toISOString();
+
         const data = {
             value: parseFloat(document.getElementById('reg-value').value),
             type: document.querySelector('input[name="reg-type"]:checked').value,
@@ -462,7 +480,8 @@ if (formRegister) {
             description: document.getElementById('reg-name').value,
             categoryId: categoryId,
             notes: document.getElementById('reg-notes').value,
-            date: new Date().toISOString(),
+            date: purchaseDate,
+            dueDate: calculateDueDate(purchaseDate, payMethod),
             userId: auth.currentUser.uid,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -811,11 +830,13 @@ function updateTotalDisplay() {
     let total = 0;
     currentExpenses.forEach(exp => {
         const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
+        const baseDate = exp.dueDate || exp.date;
+
         if (isParcelado) {
-            const currentInst = getInstallmentStatus(exp.date, exp.installments, currentMonth, currentYear);
+            const currentInst = getInstallmentStatus(baseDate, exp.installments, currentMonth, currentYear);
             if (currentInst) total += exp.value;
         } else {
-            const expDate = new Date(exp.date);
+            const expDate = new Date(baseDate);
             if (expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear) total += exp.value;
         }
     });
