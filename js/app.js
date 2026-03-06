@@ -2,6 +2,7 @@ import firebaseConfig from './firebase-config.js';
 import { AuthService } from './auth-service.js';
 import { ImportService } from './import-service.js';
 import { SettingsService } from './settings-service.js';
+import { formatCurrency, getInstallmentStatus } from './utils.js';
 
 // Inicializar Firebase
 if (!firebase.apps.length) {
@@ -187,16 +188,37 @@ function renderDashboard() {
     const { month: monthSelect, year: yearSelect, category: categorySelect } = getDashFilters();
     if (!monthSelect || !yearSelect) return;
 
-    const month = parseInt(monthSelect.value);
-    const year = parseInt(yearSelect.value);
+    const filterMonth = parseInt(monthSelect.value);
+    const filterYear = parseInt(yearSelect.value);
     const categoryFilter = categorySelect ? categorySelect.value : 'all';
 
-    const filtered = currentExpenses.filter(exp => {
-        const d = new Date(exp.date);
-        const matchMonth = d.getMonth() === month;
-        const matchYear = d.getFullYear() === year;
-        const matchCategory = categoryFilter === 'all' || exp.categoryId === categoryFilter;
-        return matchMonth && matchYear && matchCategory;
+    const filtered = [];
+
+    currentExpenses.forEach(exp => {
+        const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
+        
+        if (isParcelado) {
+            const currentInst = getInstallmentStatus(exp.date, exp.installments, filterMonth, filterYear);
+            
+            if (currentInst) {
+                const matchCategory = categoryFilter === 'all' || exp.categoryId === categoryFilter;
+                if (matchCategory) {
+                    filtered.push({
+                        ...exp,
+                        currentInstallment: currentInst
+                    });
+                }
+            }
+        } else {
+            const startDate = new Date(exp.date);
+            const matchMonth = startDate.getMonth() === filterMonth;
+            const matchYear = startDate.getFullYear() === filterYear;
+            const matchCategory = categoryFilter === 'all' || exp.categoryId === categoryFilter;
+            
+            if (matchMonth && matchYear && matchCategory) {
+                filtered.push(exp);
+            }
+        }
     });
 
     const total = filtered.reduce((acc, curr) => acc + curr.value, 0);
@@ -278,11 +300,16 @@ function renderHistory(expenses) {
         const cat = currentCategories.find(c => c.id === exp.categoryId);
         const pay = currentPaymentMethods.find(p => p.id === exp.paymentMethodId);
         const date = new Date(exp.date).toLocaleDateString('pt-BR');
+        
+        // Badge de Parcela
+        const installmentBadge = exp.currentInstallment 
+            ? `<span class="installment-badge">${exp.currentInstallment}/${exp.installments}</span>` 
+            : '';
 
         return `
             <div class="history-item">
                 <div class="history-info">
-                    <span class="history-name">${exp.description}</span>
+                    <span class="history-name">${exp.description} ${installmentBadge}</span>
                     <div class="history-meta">
                         <span><i class="bi bi-tag"></i> ${cat ? cat.name : 'Sem Cat.'}</span>
                         <span><i class="bi bi-calendar3"></i> ${date}</span>
@@ -298,10 +325,6 @@ function renderHistory(expenses) {
             </div>
         `;
     }).join('');
-}
-
-function formatCurrency(val) {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 }
 
 // Modal de Edição de Despesa

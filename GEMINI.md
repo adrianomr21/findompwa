@@ -8,7 +8,7 @@ Este projeto é um Progressive Web App (PWA) moderno para controle financeiro do
 - **Design:** Mobile-First, Tema Escuro (Premium Dark Mode), Fonte Inter, Bootstrap Icons.
 - **Backend/Database:** Firebase Firestore (Banco de dados NoSQL).
 - **Autenticação:** Firebase Auth (Google Login e E-mail/Senha).
-- **Gráficos:** Chart.js (Dashboard).
+- **Gráficos:** Chart.js (Dashboard dinâmico).
 - **PWA:** Service Workers e Web App Manifest para instalação mobile.
 - **Testes:** Vitest (Testes unitários de utilitários e serviços).
 
@@ -21,43 +21,47 @@ Este projeto é um Progressive Web App (PWA) moderno para controle financeiro do
 - `js/auth-service.js`: Serviço de autenticação Firebase.
 - `js/import-service.js`: Lógica de processamento de dados em lote.
 - `js/firebase-config.js`: Configurações de credenciais do Firebase.
-- `js/utils.js`: Funções utilitárias (formatação, cálculos).
+- `js/utils.js`: Funções utilitárias (formatação, cálculos de parcelas).
 - `js/importador.js`: Script auxiliar para importação de dados históricos.
 - `sw.js`: Service Worker para funcionamento offline e cache de assets.
 - `manifest.json`: Manifesto do PWA para instalação no celular.
 - `assets/`: Ícones, favicons e imagens de referência.
 - `docs/`: Logs, capturas de tela e histórico de dados.
-- `tests/`: Testes unitários para garantir a integridade dos cálculos e serviços.
+- `tests/`: Testes unitários para garantir a integridade dos cálculos, parcelas e serviços.
 
 ## ✨ Funcionalidades Implementadas
 
 1.  **Autenticação Segura:**
     - Login rápido com Google.
     - Cadastro e Login com E-mail e Senha.
-    - Proteção de rotas (o app só aparece após o login).
-    - Botão de Logout integrado ao menu.
+    - Interface de autenticação moderna e centralizada.
+    - Proteção de rotas e logout integrado.
 
-2.  **Fluxo de Cadastro (Entrada Inicial):**
-    - Cadastro rápido de despesas logo ao entrar.
-    - Campo de valor grande e centralizado para rapidez.
-    - Seletor de Modo (À Vista / Parcelado) perfeitamente alinhado.
-    - **Barra de Progresso Dinâmica:** Informa o limite e o gasto da categoria selecionada em tempo real.
-    - **Validação Rigorosa:** Impede o salvamento de dados incompletos ou nulos.
+2.  **Dashboard (Painel de Controle):**
+    - **Filtros Inteligentes:** Seleção por Mês, Ano e Categoria.
+    - **Gráficos Dinâmicos:** Visualização do uso do limite por categoria (Chart.js).
+    - **Histórico Completo:** Lista de despesas com badges informativos.
+    - **Edição/Exclusão:** Modal para ajustes de despesas existentes.
 
-3.  **Gestão de Ajustes (Configurações):**
-    - **Categorias:** Criação e edição de categorias com definição de limite mensal.
-    - **Formas de Pagamento:** Suporte para Débito/Pix, Cartão de Crédito (com dia de fechamento e vencimento) e Boletos.
-    - **Dívidas Fixas:** Cadastro de gastos recorrentes com valor e data de pagamento.
-    - **Sincronização:** Dados de categorias e pagamentos alimentam automaticamente os seletores do sistema.
+3.  **Lógica Avançada de Parcelamento:**
+    - **Propagação Automática:** Despesas parceladas aparecem em todos os meses correspondentes.
+    - **Indicador de Parcela:** Badge visual (ex: 1/3, 2/3) no histórico baseado no mês filtrado.
+    - **Cálculos Precisos:** Utilização de funções utilitárias testadas para gerenciar períodos e viradas de ano.
 
-4.  **Visualização Proeminente:**
-    - **Banner de Total Global:** Exibe o gasto total do mês de forma clara no topo da tela.
-    - **Bottom Nav (Mobile):** Barra de navegação inferior estilo app nativo.
-    - **Sidebar (Desktop):** Barra lateral fixa para telas grandes.
+4.  **Fluxo de Cadastro:**
+    - Cadastro rápido de despesas (À Vista / Parcelado).
+    - Barra de progresso em tempo real ao selecionar categoria.
+    - Validação rigorosa de campos obrigatórios.
 
-5.  **Importação em Lote:**
-    - Botão dedicado para importar centenas de registros de uma vez via cópia de texto (formato TSV).
-    - Feedback de progresso linha a linha.
+5.  **Gestão de Ajustes (Configurações):**
+    - Gerenciamento de Categorias (com limites mensais).
+    - Formas de Pagamento (Débito, Crédito com fechamento/vencimento, Boletos).
+    - Dívidas Fixas recorrentes.
+
+6.  **PWA e Responsividade:**
+    - Mobile-First com suporte a rolagem em modais e campos padronizados.
+    - Funcionamento offline via Service Workers.
+    - Instalável em dispositivos Android e iOS.
 
 ## 🛠️ Configuração e Rodagem
 
@@ -78,4 +82,4 @@ Este projeto é um Progressive Web App (PWA) moderno para controle financeiro do
     - Configurar as chaves no arquivo `js/firebase-config.js`.
 
 ---
-*Documentação gerada pelo Gemini CLI.*
+*Documentação atualizada pelo Gemini CLI.*
