@@ -10,13 +10,16 @@ Este projeto é um Progressive Web App (PWA) moderno para controle financeiro do
 - **Autenticação:** Firebase Auth (Google Login e E-mail/Senha).
 - **Gráficos:** Chart.js (Dashboard).
 - **PWA:** Service Workers e Web App Manifest para instalação mobile.
-- **Testes:** Vitest (Testes unitários de utilitários).
+- **Testes:** Vitest (Testes unitários de utilitários e serviços).
 
 ## 📂 Estrutura de Pastas
 
 - `index.html`: Ponto de entrada SPA (Single Page Application).
 - `css/style.css`: Estilização completa do sistema (variáveis CSS, layouts flex/grid, responsividade).
 - `js/app.js`: Lógica principal da interface, navegação e integração com Firebase.
+- `js/settings-service.js`: Serviço de gestão de categorias, pagamentos e dívidas fixas.
+- `js/auth-service.js`: Serviço de autenticação Firebase.
+- `js/import-service.js`: Lógica de processamento de dados em lote.
 - `js/firebase-config.js`: Configurações de credenciais do Firebase.
 - `js/utils.js`: Funções utilitárias (formatação, cálculos).
 - `js/importador.js`: Script auxiliar para importação de dados históricos.
@@ -24,14 +27,13 @@ Este projeto é um Progressive Web App (PWA) moderno para controle financeiro do
 - `manifest.json`: Manifesto do PWA para instalação no celular.
 - `assets/`: Ícones, favicons e imagens de referência.
 - `docs/`: Logs, capturas de tela e histórico de dados.
-- `tests/`: Testes unitários para garantir a integridade dos cálculos.
+- `tests/`: Testes unitários para garantir a integridade dos cálculos e serviços.
 
 ## ✨ Funcionalidades Implementadas
 
 1.  **Autenticação Segura:**
     - Login rápido com Google.
     - Cadastro e Login com E-mail e Senha.
-    - Visualização de senha (ícone de olho).
     - Proteção de rotas (o app só aparece após o login).
     - Botão de Logout integrado ao menu.
 
@@ -39,15 +41,22 @@ Este projeto é um Progressive Web App (PWA) moderno para controle financeiro do
     - Cadastro rápido de despesas logo ao entrar.
     - Campo de valor grande e centralizado para rapidez.
     - Seletor de Modo (À Vista / Parcelado) perfeitamente alinhado.
-    - **Barra de Progresso Dinâmica:** Informa o limite e o gasto da categoria selecionada em tempo real (Verde/Amarelo/Vermelho).
+    - **Barra de Progresso Dinâmica:** Informa o limite e o gasto da categoria selecionada em tempo real.
+    - **Validação Rigorosa:** Impede o salvamento de dados incompletos ou nulos.
 
-3.  **Visualização Proeminente:**
+3.  **Gestão de Ajustes (Configurações):**
+    - **Categorias:** Criação e edição de categorias com definição de limite mensal.
+    - **Formas de Pagamento:** Suporte para Débito/Pix, Cartão de Crédito (com dia de fechamento e vencimento) e Boletos.
+    - **Dívidas Fixas:** Cadastro de gastos recorrentes com valor e data de pagamento.
+    - **Sincronização:** Dados de categorias e pagamentos alimentam automaticamente os seletores do sistema.
+
+4.  **Visualização Proeminente:**
     - **Banner de Total Global:** Exibe o gasto total do mês de forma clara no topo da tela.
     - **Bottom Nav (Mobile):** Barra de navegação inferior estilo app nativo.
     - **Sidebar (Desktop):** Barra lateral fixa para telas grandes.
 
-4.  **Importação em Lote:**
-    - Botão dedicado para importar centenas de registros de uma vez via cópia de texto (formato .md/TSV).
+5.  **Importação em Lote:**
+    - Botão dedicado para importar centenas de registros de uma vez via cópia de texto (formato TSV).
     - Feedback de progresso linha a linha.
 
 ## 🛠️ Configuração e Rodagem
