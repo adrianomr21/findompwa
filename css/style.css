@@ -681,8 +681,14 @@ input:focus, select:focus { border-color: var(--accent); }
     min-width: 120px; /* Garante que os campos não fiquem minúsculos */
 }
 
+.dashboard-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
 .dashboard-summary {
-    margin-bottom: 32px;
+    margin-bottom: 40px;
     width: 100%;
 }
 
@@ -690,7 +696,7 @@ input:focus, select:focus { border-color: var(--accent); }
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 24px;
+    padding: 30px;
     text-align: center;
     box-shadow: var(--shadow);
 }
@@ -701,32 +707,30 @@ input:focus, select:focus { border-color: var(--accent); }
     color: var(--text-muted);
     text-transform: uppercase;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
 }
 
 .summary-card h2 {
-    font-size: 2.5rem;
+    font-size: 3rem;
     color: var(--accent);
     font-weight: 800;
-    word-break: break-word; /* Evita que valores grandes quebrem o layout */
+    letter-spacing: -1px;
 }
 
 .dashboard-section {
     width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    margin-bottom: 24px;
+    margin-bottom: 48px;
 }
 
 .dashboard-section h3 {
     font-size: 1.1rem;
     font-weight: 700;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    color: var(--text);
 }
 
 .dashboard-section h3 i {
