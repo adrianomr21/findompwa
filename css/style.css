@@ -901,21 +901,39 @@ input:focus, select:focus { border-color: var(--accent); }
     }
 
     /* Dashboard Mobile Tweaks */
+    .summary-card {
+        padding: 20px 16px;
+    }
+
     .summary-card h2 {
-        font-size: 2rem;
+        font-size: 1.8rem;
     }
 
     .dashboard-section {
         padding: 16px;
+        margin-bottom: 16px;
     }
 
     .dashboard-filters {
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 12px;
     }
 
     .dashboard-filters .filter-group {
         width: 100%;
+    }
+
+    .history-item {
+        padding: 12px;
+    }
+
+    .history-amount {
+        font-size: 1rem;
+    }
+
+    .history-meta {
+        font-size: 0.7rem;
     }
 }
 
