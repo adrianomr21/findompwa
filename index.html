@@ -82,9 +82,13 @@
         <main id="app-content">
             <!-- Tela de Cadastro -->
             <section id="screen-register" class="screen active">
-                <!-- Banner de Total (Agora exclusivo da tela de cadastro) -->
+                <!-- Banner de Total com Navegação -->
                 <div class="global-total-banner">
-                    <small>Gasto Total do Mês</small>
+                    <div class="banner-header">
+                        <button id="btn-banner-prev" class="btn-banner-nav"><i class="bi bi-chevron-left"></i></button>
+                        <small id="banner-month-name">GASTO TOTAL DO MÊS</small>
+                        <button id="btn-banner-next" class="btn-banner-nav"><i class="bi bi-chevron-right"></i></button>
+                    </div>
                     <h2 id="main-total-spent">R$ 0,00</h2>
                 </div>
 

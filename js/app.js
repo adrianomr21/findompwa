@@ -824,24 +824,63 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-function updateTotalDisplay() {
+let bannerMonth = 0;
+let bannerYear = 0;
+
+function initBannerDate() {
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    const monthName = now.toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
-    const bannerTitle = document.querySelector('.global-total-banner small');
-    if (bannerTitle) bannerTitle.textContent = `GASTO TOTAL DO MÊS (${monthName})`;
+    // Inicia no próximo mês
+    now.setMonth(now.getMonth() + 1);
+    bannerMonth = now.getMonth();
+    bannerYear = now.getFullYear();
+    updateTotalDisplay();
+}
+
+function setupBannerNav() {
+    const btnPrev = document.getElementById('btn-banner-prev');
+    const btnNext = document.getElementById('btn-banner-next');
+
+    if (btnPrev) {
+        btnPrev.addEventListener('click', () => {
+            if (bannerMonth === 0) {
+                bannerMonth = 11;
+                bannerYear--;
+            } else {
+                bannerMonth--;
+            }
+            updateTotalDisplay();
+        });
+    }
+
+    if (btnNext) {
+        btnNext.addEventListener('click', () => {
+            if (bannerMonth === 11) {
+                bannerMonth = 0;
+                bannerYear++;
+            } else {
+                bannerMonth++;
+            }
+            updateTotalDisplay();
+        });
+    }
+}
+
+function updateTotalDisplay() {
+    const monthName = new Date(bannerYear, bannerMonth).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+    const bannerTitle = document.getElementById('banner-month-name');
+    if (bannerTitle) bannerTitle.textContent = `TOTAL DE ${monthName} (${bannerYear})`;
+    
     let total = 0;
     currentExpenses.forEach(exp => {
         const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
         const baseDate = exp.dueDate || exp.date;
 
         if (isParcelado) {
-            const currentInst = getInstallmentStatus(baseDate, exp.installments, currentMonth, currentYear);
+            const currentInst = getInstallmentStatus(baseDate, exp.installments, bannerMonth, bannerYear);
             if (currentInst) total += exp.value;
         } else {
             const expDate = new Date(baseDate);
-            if (expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear) total += exp.value;
+            if (expDate.getMonth() === bannerMonth && expDate.getFullYear() === bannerYear) total += exp.value;
         }
     });
     const mainTotal = document.getElementById('main-total-spent');
@@ -851,6 +890,7 @@ function updateTotalDisplay() {
 // Start
 document.addEventListener('DOMContentLoaded', () => {
     setupYearFilter();
+    initBannerDate();
+    setupBannerNav();
     showScreen('register');
-    updateTotalDisplay();
 });

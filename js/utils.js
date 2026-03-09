@@ -118,7 +118,7 @@ export function showToast(message, type = 'success') {
     
     const icon = type === 'success' ? 'bi-check-circle-fill' : 
                  type === 'error' ? 'bi-exclamation-triangle-fill' : 'bi-info-circle-fill';
-    
+    a
     toast.innerHTML = `
         <i class="bi ${icon}"></i>
         <span>${message}</span>

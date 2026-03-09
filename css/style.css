@@ -122,14 +122,38 @@ body {
     box-shadow: var(--shadow);
 }
 
+.banner-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.btn-banner-nav {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-banner-nav:hover {
+    color: var(--accent);
+    background: rgba(255, 255, 255, 0.05);
+}
+
 .global-total-banner small {
-    display: block;
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
     color: var(--text-muted);
     letter-spacing: 1px;
-    margin-bottom: 8px;
 }
 
 .global-total-banner h2 {
