@@ -759,11 +759,25 @@ input:focus, select:focus { border-color: var(--accent); }
     color: var(--text-muted);
 }
 
-/* History List */
-.history-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+/* Search Box */
+.search-box {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.search-box input {
+    padding-left: 44px !important;
+    height: 48px !important;
+    font-size: 0.9rem !important;
 }
 
 .history-item {

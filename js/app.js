@@ -172,12 +172,18 @@ function setupYearFilter() {
 
 function setupFilterListeners() {
     const { month, year, category, payment } = getDashFilters();
+    const searchInput = document.getElementById('dash-search-history');
+
     [month, year, category, payment].forEach(el => {
         if (el) {
             el.removeEventListener('change', renderDashboard);
             el.addEventListener('change', renderDashboard);
         }
     });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', renderDashboard);
+    }
 }
 
 async function loadDashboardData() {
@@ -201,18 +207,26 @@ async function loadDashboardData() {
 
 function renderDashboard() {
     const { month: monthSelect, year: yearSelect, category: categorySelect, payment: paymentSelect } = getDashFilters();
+    const searchInput = document.getElementById('dash-search-history');
+    
     if (!monthSelect || !yearSelect) return;
 
     const filterMonth = parseInt(monthSelect.value);
     const filterYear = parseInt(yearSelect.value);
     const categoryFilter = categorySelect ? categorySelect.value : 'all';
     const paymentFilter = paymentSelect ? paymentSelect.value : 'all';
+    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
     const filtered = [];
 
     currentExpenses.forEach(exp => {
         const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
         const baseDate = exp.dueDate || exp.date;
+
+        // Filtro por termo de busca (Descrição)
+        if (searchTerm && !exp.description.toLowerCase().includes(searchTerm)) {
+            return;
+        }
 
         if (isParcelado) {
             const currentInst = getInstallmentStatus(baseDate, exp.installments, filterMonth, filterYear);
