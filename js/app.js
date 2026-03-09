@@ -2,7 +2,7 @@ import firebaseConfig from './firebase-config.js';
 import { AuthService } from './auth-service.js';
 import { ImportService } from './import-service.js';
 import { SettingsService } from './settings-service.js';
-import { formatCurrency, getInstallmentStatus, calculateDueDate } from './utils.js';
+import { formatCurrency, getInstallmentStatus, calculateDueDate, showToast } from './utils.js';
 
 // Inicializar Firebase
 if (!firebase.apps.length) {
@@ -55,7 +55,7 @@ if (formLogin) {
         e.preventDefault();
         const email = document.getElementById('login-email').value;
         const pass = document.getElementById('login-password').value;
-        authService.loginWithEmail(email, pass).catch(err => alert("Erro ao entrar: " + err.message));
+        authService.loginWithEmail(email, pass).catch(err => showToast("Erro ao entrar: " + err.message, 'error'));
     });
 }
 
@@ -67,8 +67,8 @@ if (formSignup) {
         const email = document.getElementById('signup-email').value;
         const pass = document.getElementById('signup-password').value;
         authService.signUpWithEmail(email, pass)
-            .then(() => alert("Conta criada com sucesso!"))
-            .catch(err => alert("Erro ao cadastrar: " + err.message));
+            .then(() => showToast("Conta criada com sucesso!", 'success'))
+            .catch(err => showToast("Erro ao cadastrar: " + err.message, 'error'));
     });
 }
 
@@ -91,7 +91,7 @@ if (btnLoginGoogle) {
     btnLoginGoogle.addEventListener('click', () => {
         auth.signInWithPopup(provider).catch(error => {
             console.error("Erro no login Google:", error);
-            alert("Erro ao entrar com Google.");
+            showToast("Erro ao entrar com Google.", 'error');
         });
     });
 }
@@ -420,9 +420,10 @@ if (formEditExpense) {
         try {
             await db.collection('despesas').doc(id).update(data);
             modalEditExpense.classList.remove('active');
+            showToast("Alterações salvas!", 'success');
             loadDashboardData();
         } catch (error) {
-            alert("Erro ao atualizar: " + error.message);
+            showToast("Erro ao atualizar: " + error.message, 'error');
         }
     });
 }
@@ -434,9 +435,10 @@ if (btnDeleteExpense) {
         try {
             await db.collection('despesas').doc(id).delete();
             modalEditExpense.classList.remove('active');
+            showToast("Despesa excluída!", 'success');
             loadDashboardData();
         } catch (error) {
-            alert("Erro ao excluir: " + error.message);
+            showToast("Erro ao excluir: " + error.message, 'error');
         }
     });
 }
@@ -463,7 +465,7 @@ if (formRegister) {
         const categoryId = document.getElementById('reg-category').value;
         const paymentMethodId = document.getElementById('reg-payment-method').value;
         if (!categoryId || !paymentMethodId) {
-            alert("Por favor, selecione uma Categoria e uma Forma de Pagamento.");
+            showToast("Selecione Categoria e Pagamento.", 'error');
             return;
         }
         const btnSubmit = formRegister.querySelector('button[type="submit"]');
@@ -492,14 +494,14 @@ if (formRegister) {
             btnSubmit.disabled = true;
             btnSubmit.textContent = "Salvando...";
             await db.collection('despesas').add(data);
-            alert("Despesa registrada com sucesso!");
+            showToast("Gasto registrado!", 'success');
             formRegister.reset();
             parcelasField.classList.add('hidden');
             if (progressContainer) progressContainer.classList.add('hidden');
             loadDashboardData(); // Recarrega para atualizar banner
             showScreen('dashboard');
         } catch (error) {
-            alert("Erro ao registrar: " + error.message);
+            showToast("Erro ao registrar: " + error.message, 'error');
         } finally {
             btnSubmit.disabled = false;
             btnSubmit.textContent = originalText;
@@ -731,8 +733,9 @@ if (formSettings) {
             if (type === 'paymentMethod') await settingsService.savePaymentMethod(itemWithId);
             if (type === 'fixedDebt') await settingsService.saveFixedDebt(itemWithId);
             modalSettings.classList.remove('active');
+            showToast("Configuração salva!", 'success');
             loadAllSettings();
-        } catch (error) { alert("Erro ao salvar: " + error.message); }
+        } catch (error) { showToast("Erro ao salvar: " + error.message, 'error'); }
     });
 }
 
@@ -746,8 +749,9 @@ if (btnDeleteSettingsItem) {
             if (type === 'paymentMethod') await settingsService.deletePaymentMethod(id);
             if (type === 'fixedDebt') await settingsService.deleteFixedDebt(id);
             modalSettings.classList.remove('active');
+            showToast("Item excluído!", 'success');
             loadAllSettings();
-        } catch (error) { alert("Erro ao excluir: " + error.message); }
+        } catch (error) { showToast("Erro ao excluir: " + error.message, 'error'); }
     });
 }
 

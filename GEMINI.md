@@ -21,7 +21,7 @@ Este projeto é um Progressive Web App (PWA) moderno para controle financeiro do
 - `js/auth-service.js`: Serviço de autenticação Firebase.
 - `js/import-service.js`: Lógica de processamento de dados em lote.
 - `js/firebase-config.js`: Configurações de credenciais do Firebase.
-- `js/utils.js`: Funções utilitárias (formatação, cálculos de parcelas).
+- `js/utils.js`: Funções utilitárias (formatação, cálculos de parcelas e vencimentos).
 - `js/importador.js`: Script auxiliar para importação de dados históricos.
 - `sw.js`: Service Worker para funcionamento offline e cache de assets.
 - `manifest.json`: Manifesto do PWA para instalação no celular.
@@ -38,18 +38,21 @@ Este projeto é um Progressive Web App (PWA) moderno para controle financeiro do
     - Proteção de rotas e logout integrado.
 
 2.  **Dashboard (Painel de Controle):**
-    - **Filtros Inteligentes:** Seleção por Mês, Ano e Categoria.
+    - **Filtros Inteligentes:** Seleção por Mês, Ano, Categoria e Forma de Pagamento.
+    - **Filtragem por Vencimento:** O sistema utiliza a data de vencimento (`dueDate`) como referência principal para exibir despesas no mês/ano selecionado.
     - **Gráficos Dinâmicos:** Visualização do uso do limite por categoria (Chart.js).
-    - **Histórico Completo:** Lista de despesas com badges informativos.
+    - **Histórico Completo:** Lista de despesas com badges informativos e data de vencimento da parcela.
     - **Edição/Exclusão:** Modal para ajustes de despesas existentes.
 
-3.  **Lógica Avançada de Parcelamento:**
-    - **Propagação Automática:** Despesas parceladas aparecem em todos os meses correspondentes.
-    - **Indicador de Parcela:** Badge visual (ex: 1/3, 2/3) no histórico baseado no mês filtrado.
-    - **Cálculos Precisos:** Utilização de funções utilitárias testadas para gerenciar períodos e viradas de ano.
+3.  **Lógica Avançada de Vencimentos e Ciclos:**
+    - **Ciclo de Cartão de Crédito:** Cálculo dinâmico baseado no dia de fechamento (`endDay`) e dia de pagamento (`paymentDay`). Suporta compras que caem na fatura atual ou na próxima.
+    - **Vencimento de Boletos:** Cálculo automático do mês de vencimento com base no dia fixo configurado.
+    - **Propagação de Parcelas:** Despesas parceladas utilizam a data de vencimento da primeira parcela como base para distribuir as demais nos meses subsequentes.
+    - **Retrocompatibilidade:** Sistema utiliza a data da compra como fallback para registros antigos sem campo de vencimento.
 
 4.  **Fluxo de Cadastro:**
     - Cadastro rápido de despesas (À Vista / Parcelado).
+    - Registro automático da data de vencimento no Firebase no momento do cadastro.
     - Barra de progresso em tempo real ao selecionar categoria.
     - Validação rigorosa de campos obrigatórios.
 

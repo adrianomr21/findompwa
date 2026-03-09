@@ -100,3 +100,37 @@ export function calculateDueDate(purchaseDate, paymentMethod) {
 
     return due.toISOString();
 }
+
+/**
+ * Exibe uma notificação toast na tela.
+ * @param {string} message Mensagem a ser exibida
+ * @param {string} type Tipo da notificação: 'success', 'error', 'info'
+ */
+export function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    if (!container) {
+        console.warn('Toast container not found');
+        return;
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    const icon = type === 'success' ? 'bi-check-circle-fill' : 
+                 type === 'error' ? 'bi-exclamation-triangle-fill' : 'bi-info-circle-fill';
+    
+    toast.innerHTML = `
+        <i class="bi ${icon}"></i>
+        <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    // Remover após 3 segundos
+    setTimeout(() => {
+        toast.classList.add('removing');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 3000);
+}
