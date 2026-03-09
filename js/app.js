@@ -144,16 +144,29 @@ function setupYearFilter() {
     if (!yearSelect) return;
 
     yearSelect.innerHTML = '';
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    
+    // Calcula o próximo mês e o ano correspondente
+    let nextMonth = now.getMonth() + 1;
+    let nextYear = now.getFullYear();
+    
+    if (nextMonth > 11) {
+        nextMonth = 0;
+        nextYear++;
+    }
+
+    // Preenche as opções de ano (baseado no nextYear para cobrir viradas de ano)
     for (let i = 0; i < 4; i++) {
-        const year = currentYear - i;
+        const year = nextYear - i;
         const opt = document.createElement('option');
         opt.value = year;
         opt.textContent = year;
         yearSelect.appendChild(opt);
     }
     
-    if (monthSelect) monthSelect.value = new Date().getMonth();
+    if (monthSelect) monthSelect.value = nextMonth;
+    if (yearSelect) yearSelect.value = nextYear;
+
     setupFilterListeners();
 }
 
