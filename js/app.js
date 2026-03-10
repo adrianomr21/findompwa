@@ -2,7 +2,7 @@ import firebaseConfig from './firebase-config.js';
 import { AuthService } from './auth-service.js';
 import { ImportService } from './import-service.js';
 import { SettingsService } from './settings-service.js';
-import { formatCurrency, getInstallmentStatus, calculateDueDate, showToast } from './utils.js';
+import { formatCurrency, getInstallmentStatus, calculateDueDate, showToast, calculatePayTotal, calculateDueDateForMonth } from './utils.js';
 
 // Inicializar Firebase
 if (!firebase.apps.length) {
@@ -1005,12 +1005,6 @@ async function loadPaymentsData() {
     }
 }
 
-function calculateDueDateForMonth(method, month, year) {
-    if (!method) return new Date(year, month, 10).toISOString();
-    const day = method.type === 'credito' ? method.paymentDay : (method.dueDay || 10);
-    return new Date(year, month, day || 10).toISOString();
-}
-
 function renderPayments() {
     const list = document.getElementById('payments-list');
     if (!list) return;
@@ -1062,9 +1056,7 @@ function updatePayTotalDisplay() {
     const bannerTitle = document.getElementById('pay-month-name');
     if (bannerTitle) bannerTitle.textContent = `PAGAMENTOS DE ${monthName} (${payYear})`;
     
-    const total = currentPaymentsData
-        .filter(p => !p.ignored)
-        .reduce((acc, curr) => acc + curr.actualValue, 0);
+    const total = calculatePayTotal(currentPaymentsData);
         
     const display = document.getElementById('pay-total-spent');
     if (display) display.textContent = formatCurrency(total);

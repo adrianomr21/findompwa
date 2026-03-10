@@ -7,6 +7,18 @@ export function calculateTotal(expenses) {
     return expenses.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
 }
 
+export function calculatePayTotal(payments) {
+    return (payments || [])
+        .filter(p => !p.ignored)
+        .reduce((acc, curr) => acc + (parseFloat(curr.actualValue) || 0), 0);
+}
+
+export function calculateDueDateForMonth(method, month, year) {
+    if (!method) return new Date(year, month, 10).toISOString();
+    const day = method.type === 'credito' ? method.paymentDay : (method.dueDay || 10);
+    return new Date(year, month, day || 10).toISOString();
+}
+
 export function calculateInstallments(total, num) {
     if (!num || num <= 1) return [total];
     const value = (total / num).toFixed(2);

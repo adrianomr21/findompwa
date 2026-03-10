@@ -2,32 +2,25 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 1. Bloqueio padrão: Ninguém lê ou escreve nada por padrão
+    // 1. Bloqueio padrão
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // 2. Regras para subcoleções do usuário (Categorias, Pagamentos, Dívidas Fixas)
-    // Estrutura: /users/{userId}/categories/{docId}
+    // 2. Subcoleções do usuário (/users/{uid}/...)
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 3. Regras para a coleção global de Despesas
-    // Estrutura: /despesas/{despesaId}
-    match /despesas/{despesaId} {
-      
-      // Permitir criar se estiver logado e o userId enviado for o próprio
-      allow create: if request.auth != null 
-                    && request.resource.data.userId == request.auth.uid;
-      
-      // Permitir ler, atualizar ou excluir apenas se o documento pertencer ao usuário
-      allow read, update, delete: if request.auth != null 
-                                  && resource.data.userId == request.auth.uid;
+    // 3. Coleção global de Despesas
+    match /despesas/{docId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
-    match /faturas/{docId} {      
-      allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
+    // 4. Nova coleção de Faturas (Status de Pagamento)
+    match /faturas/{docId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
   }
