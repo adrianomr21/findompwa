@@ -264,8 +264,27 @@
             </section>
 
             <section id="screen-payments" class="screen">
-                <header class="section-header"><h1>Pagamentos Pendentes</h1></header>
-                <div id="payments-list"></div>
+                <!-- Banner de Navegação Mensal (Pagar) -->
+                <div class="global-total-banner">
+                    <div class="banner-header">
+                        <button id="btn-pay-prev" class="btn-banner-nav"><i class="bi bi-chevron-left"></i></button>
+                        <small id="pay-month-name">TOTAL A PAGAR</small>
+                        <button id="btn-pay-next" class="btn-banner-nav"><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                    <h2 id="pay-total-spent">R$ 0,00</h2>
+                </div>
+
+                <div class="dashboard-container">
+                    <header class="section-header">
+                        <h1>Pagamentos</h1>
+                        <p>Controle suas faturas e contas fixas</p>
+                    </header>
+
+                    <div id="payments-list" class="history-list">
+                        <!-- Itens de pagamento carregados dinamicamente -->
+                        <div class="list-empty">Carregando pagamentos...</div>
+                    </div>
+                </div>
             </section>
 
             <section id="screen-settings" class="screen">

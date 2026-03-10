@@ -20,6 +20,12 @@ let currentFixedDebts = [];
 let currentExpenses = [];
 let categoryChart = null;
 
+let bannerMonth = 0;
+let bannerYear = 0;
+let payMonth = 0;
+let payYear = 0;
+let currentPaymentsData = [];
+
 const authScreen = document.getElementById('auth-screen');
 const appWrapper = document.getElementById('app-wrapper');
 const btnLoginGoogle = document.getElementById('btn-login-google');
@@ -117,6 +123,10 @@ function showScreen(screenId) {
     if (screenId === 'dashboard' || screenId === 'register') {
         loadDashboardData();
     }
+
+    if (screenId === 'payments') {
+        loadPaymentsData();
+    }
     
     if (window.navigator.vibrate) {
         window.navigator.vibrate(5);
@@ -146,7 +156,6 @@ function setupYearFilter() {
     yearSelect.innerHTML = '';
     const now = new Date();
     
-    // Calcula o próximo mês e o ano correspondente
     let nextMonth = now.getMonth() + 1;
     let nextYear = now.getFullYear();
     
@@ -155,7 +164,6 @@ function setupYearFilter() {
         nextYear++;
     }
 
-    // Preenche as opções de ano (baseado no nextYear para cobrir viradas de ano)
     for (let i = 0; i < 4; i++) {
         const year = nextYear - i;
         const opt = document.createElement('option');
@@ -223,7 +231,6 @@ function renderDashboard() {
         const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
         const baseDate = exp.dueDate || exp.date;
 
-        // Filtro por termo de busca (Descrição)
         if (searchTerm && !exp.description.toLowerCase().includes(searchTerm)) {
             return;
         }
@@ -342,7 +349,6 @@ function renderHistory(expenses) {
         const pay = currentPaymentMethods.find(p => p.id === exp.paymentMethodId);
         const displayDate = new Date(exp.displayDate || exp.date).toLocaleDateString('pt-BR');
         
-        // Badge de Parcela
         const installmentBadge = exp.currentInstallment 
             ? `<span class="installment-badge">${exp.currentInstallment}/${exp.installments}</span>` 
             : '';
@@ -525,7 +531,7 @@ if (formRegister) {
             formRegister.reset();
             parcelasField.classList.add('hidden');
             if (progressContainer) progressContainer.classList.add('hidden');
-            loadDashboardData(); // Recarrega para atualizar banner
+            loadDashboardData();
             showScreen('dashboard');
         } catch (error) {
             showToast("Erro ao registrar: " + error.message, 'error');
@@ -557,7 +563,7 @@ async function loadAllSettings() {
 
         renderSettingsLists();
         populateSelects();
-        loadDashboardData(); // Carrega despesas após configurações para atualizar banner
+        loadDashboardData();
     } catch (error) {
         console.error("Erro ao carregar configurações:", error);
     }
@@ -851,44 +857,42 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-let bannerMonth = 0;
-let bannerYear = 0;
-
+// Funções de Navegação e Cálculo do Banner / Pagamentos
 function initBannerDate() {
     const now = new Date();
-    // Inicia no próximo mês
-    now.setMonth(now.getMonth() + 1);
-    bannerMonth = now.getMonth();
-    bannerYear = now.getFullYear();
+    const next = new Date();
+    next.setMonth(now.getMonth() + 1);
+    bannerMonth = next.getMonth();
+    bannerYear = next.getFullYear();
+    payMonth = now.getMonth();
+    payYear = now.getFullYear();
     updateTotalDisplay();
+    updatePayTotalDisplay();
 }
 
 function setupBannerNav() {
     const btnPrev = document.getElementById('btn-banner-prev');
     const btnNext = document.getElementById('btn-banner-next');
+    const btnPayPrev = document.getElementById('btn-pay-prev');
+    const btnPayNext = document.getElementById('btn-pay-next');
 
-    if (btnPrev) {
-        btnPrev.addEventListener('click', () => {
-            if (bannerMonth === 0) {
-                bannerMonth = 11;
-                bannerYear--;
-            } else {
-                bannerMonth--;
-            }
-            updateTotalDisplay();
-        });
-    }
+    if (btnPrev) btnPrev.addEventListener('click', () => navigateMonth('banner', -1));
+    if (btnNext) btnNext.addEventListener('click', () => navigateMonth('banner', 1));
+    if (btnPayPrev) btnPayPrev.addEventListener('click', () => navigateMonth('pay', -1));
+    if (btnPayNext) btnPayNext.addEventListener('click', () => navigateMonth('pay', 1));
+}
 
-    if (btnNext) {
-        btnNext.addEventListener('click', () => {
-            if (bannerMonth === 11) {
-                bannerMonth = 0;
-                bannerYear++;
-            } else {
-                bannerMonth++;
-            }
-            updateTotalDisplay();
-        });
+function navigateMonth(type, delta) {
+    if (type === 'banner') {
+        const d = new Date(bannerYear, bannerMonth + delta, 1);
+        bannerMonth = d.getMonth();
+        bannerYear = d.getFullYear();
+        updateTotalDisplay();
+    } else {
+        const d = new Date(payYear, payMonth + delta, 1);
+        payMonth = d.getMonth();
+        payYear = d.getFullYear();
+        loadPaymentsData();
     }
 }
 
@@ -913,6 +917,212 @@ function updateTotalDisplay() {
     const mainTotal = document.getElementById('main-total-spent');
     if (mainTotal) mainTotal.textContent = formatCurrency(total);
 }
+
+async function loadPaymentsData() {
+    if (!auth.currentUser) return;
+    const list = document.getElementById('payments-list');
+    if (list) list.innerHTML = '<div class="list-empty">Carregando pagamentos...</div>';
+
+    try {
+        const faturasSnap = await db.collection('faturas')
+            .where('userId', '==', auth.currentUser.uid)
+            .where('month', '==', payMonth)
+            .where('year', '==', payYear)
+            .get();
+        
+        const faturasStatus = {};
+        faturasSnap.forEach(doc => {
+            faturasStatus[doc.data().sourceId] = { id: doc.id, ...doc.data() };
+        });
+
+        const grouped = {};
+        currentExpenses.forEach(exp => {
+            const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
+            const baseDate = exp.dueDate || exp.date;
+            let currentInst = null;
+
+            if (isParcelado) {
+                currentInst = getInstallmentStatus(baseDate, exp.installments, payMonth, payYear);
+            } else {
+                const d = new Date(baseDate);
+                if (d.getMonth() === payMonth && d.getFullYear() === payYear) currentInst = 1;
+            }
+
+            if (currentInst) {
+                if (!grouped[exp.paymentMethodId]) {
+                    const method = currentPaymentMethods.find(p => p.id === exp.paymentMethodId);
+                    grouped[exp.paymentMethodId] = {
+                        sourceId: exp.paymentMethodId,
+                        name: method ? method.name : 'Outros',
+                        type: 'cartao',
+                        originalValue: 0,
+                        dueDate: calculateDueDateForMonth(method, payMonth, payYear),
+                        items: []
+                    };
+                }
+                grouped[exp.paymentMethodId].originalValue += exp.value;
+                grouped[exp.paymentMethodId].items.push(exp);
+            }
+        });
+
+        currentFixedDebts.forEach(debt => {
+            const sourceId = `fixed_${debt.id}`;
+            grouped[sourceId] = {
+                sourceId: sourceId,
+                name: debt.name,
+                type: 'fixa',
+                originalValue: debt.value,
+                dueDate: new Date(payYear, payMonth, debt.paymentDay).toISOString(),
+                items: [debt]
+            };
+        });
+
+        currentPaymentsData = Object.values(grouped).map(item => {
+            const status = faturasStatus[item.sourceId] || {};
+            return {
+                ...item,
+                dbId: status.id || null,
+                actualValue: status.actualValue !== undefined ? status.actualValue : item.originalValue,
+                paid: status.paid || false,
+                ignored: status.ignored || false
+            };
+        });
+
+        renderPayments();
+        updatePayTotalDisplay();
+    } catch (error) {
+        console.error("Erro ao carregar pagamentos:", error);
+    }
+}
+
+function calculateDueDateForMonth(method, month, year) {
+    if (!method) return new Date(year, month, 10).toISOString();
+    const day = method.type === 'credito' ? method.paymentDay : (method.dueDay || 10);
+    return new Date(year, month, day || 10).toISOString();
+}
+
+function renderPayments() {
+    const list = document.getElementById('payments-list');
+    if (!list) return;
+
+    if (currentPaymentsData.length === 0) {
+        list.innerHTML = '<div class="list-empty">Nenhum pagamento identificado para este mês.</div>';
+        return;
+    }
+
+    list.innerHTML = currentPaymentsData.map(pay => {
+        const statusClass = pay.paid ? 'status-paid' : 'status-pending';
+        const statusText = pay.paid ? 'PAGO' : 'PENDENTE';
+        const eyeIcon = pay.ignored ? 'bi-eye-slash' : 'bi-eye';
+        const formattedDate = new Date(pay.dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+        return `
+            <div class="payment-item ${pay.ignored ? 'ignored' : ''} ${pay.paid ? 'paid' : ''}">
+                <div class="payment-info">
+                    <div class="payment-name">
+                        ${pay.name}
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="payment-due">Vence em ${formattedDate}</div>
+                </div>
+                
+                <div class="payment-value-container">
+                    <div class="payment-amount">${formatCurrency(pay.actualValue)}</div>
+                    ${pay.actualValue !== pay.originalValue ? `<div class="payment-original-value">${formatCurrency(pay.originalValue)}</div>` : ''}
+                </div>
+
+                <div class="payment-actions">
+                    <button class="btn-icon-only" onclick="toggleIgnorePayment('${pay.sourceId}')">
+                        <i class="bi ${eyeIcon}"></i>
+                    </button>
+                    <button class="btn-icon-only" onclick="openEditPaymentValue('${pay.sourceId}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn-pay-action ${pay.paid ? 'active' : ''}" onclick="togglePaidStatus('${pay.sourceId}')">
+                        ${pay.paid ? 'PAGO' : 'PAGAR'}
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updatePayTotalDisplay() {
+    const monthName = new Date(payYear, payMonth).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+    const bannerTitle = document.getElementById('pay-month-name');
+    if (bannerTitle) bannerTitle.textContent = `PAGAMENTOS DE ${monthName} (${payYear})`;
+    
+    const total = currentPaymentsData
+        .filter(p => !p.ignored)
+        .reduce((acc, curr) => acc + curr.actualValue, 0);
+        
+    const display = document.getElementById('pay-total-spent');
+    if (display) display.textContent = formatCurrency(total);
+}
+
+window.togglePaidStatus = async (sourceId) => {
+    const pay = currentPaymentsData.find(p => p.sourceId === sourceId);
+    if (!pay) return;
+    pay.paid = !pay.paid;
+    await savePaymentStatus(pay);
+    renderPayments();
+};
+
+window.toggleIgnorePayment = async (sourceId) => {
+    const pay = currentPaymentsData.find(p => p.sourceId === sourceId);
+    if (!pay) return;
+    pay.ignored = !pay.ignored;
+    await savePaymentStatus(pay);
+    renderPayments();
+    updatePayTotalDisplay();
+};
+
+async function savePaymentStatus(pay) {
+    if (!auth.currentUser) {
+        showToast("Usuário não autenticado", 'error');
+        return;
+    }
+
+    const data = {
+        userId: auth.currentUser.uid,
+        month: payMonth,
+        year: payYear,
+        sourceId: pay.sourceId,
+        actualValue: pay.actualValue,
+        originalValue: pay.originalValue,
+        paid: pay.paid,
+        ignored: pay.ignored,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+        if (pay.dbId) {
+            await db.collection('faturas').doc(pay.dbId).update(data);
+        } else {
+            const docRef = await db.collection('faturas').add(data);
+            pay.dbId = docRef.id;
+        }
+        showToast("Status atualizado!", 'success');
+    } catch (error) {
+        console.error("Erro detalhado ao salvar status:", error);
+        showToast("Erro ao salvar status", 'error');
+    }
+}
+
+window.openEditPaymentValue = (sourceId) => {
+    const pay = currentPaymentsData.find(p => p.sourceId === sourceId);
+    if (!pay) return;
+    const newValue = prompt(`Informe o valor real pago para ${pay.name}:`, pay.actualValue);
+    if (newValue !== null) {
+        const val = parseFloat(newValue.replace(',', '.'));
+        if (!isNaN(val)) {
+            pay.actualValue = val;
+            savePaymentStatus(pay);
+            renderPayments();
+            updatePayTotalDisplay();
+        }
+    }
+};
 
 // Start
 document.addEventListener('DOMContentLoaded', () => {
