@@ -528,7 +528,17 @@ if (formRegister) {
             btnSubmit.textContent = "Salvando...";
             await db.collection('despesas').add(data);
             showToast("Gasto registrado!", 'success');
+            
+            // Salvar preferências de preenchimento
+            localStorage.setItem('lastCategoryId', categoryId);
+            localStorage.setItem('lastPaymentMethodId', paymentMethodId);
+
             formRegister.reset();
+            
+            // Restaurar preferências após reset
+            document.getElementById('reg-category').value = localStorage.getItem('lastCategoryId') || '';
+            document.getElementById('reg-payment-method').value = localStorage.getItem('lastPaymentMethodId') || '';
+            
             parcelasField.classList.add('hidden');
             if (progressContainer) progressContainer.classList.add('hidden');
             loadDashboardData();
