@@ -860,7 +860,7 @@ input:focus, select:focus { border-color: var(--accent); }
 
 .value-input-wrapper.small #edit-reg-value {
     font-size: 2rem;
-    width: 150px;
+    /*width: 150px;*/
 }
 
 @media (max-width: 900px) {
