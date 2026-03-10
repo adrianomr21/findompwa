@@ -179,7 +179,7 @@ body {
     margin-bottom: 40px; border-bottom: 2px solid var(--border); padding-bottom: 10px;
 }
 .currency { font-size: 1.5rem; font-weight: 700; color: var(--text-muted); }
-#reg-value { border: none; background: none; font-size: 1.5rem; font-weight: 600; width: 200px; outline: none; color: var(--text); text-align: center; }
+#reg-value { border: none; background: none; font-size: 1.5rem; font-weight: 600; /*width: 200px;*/ outline: none; color: var(--text); text-align: right; }
 
 .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 30px; }
 .field-group.span-2 { grid-column: span 2; }
