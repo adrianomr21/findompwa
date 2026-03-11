@@ -2,7 +2,7 @@ import firebaseConfig from './firebase-config.js';
 import { AuthService } from './auth-service.js';
 import { ImportService } from './import-service.js';
 import { SettingsService } from './settings-service.js';
-import { formatCurrency, getInstallmentStatus, calculateDueDate, showToast, calculatePayTotal, calculateDueDateForMonth } from './utils.js';
+import { formatCurrency, getInstallmentStatus, calculateDueDate, showToast, calculatePayTotal, calculateDueDateForMonth, calculateCategorySpending } from './utils.js';
 
 // Inicializar Firebase
 if (!firebase.apps.length) {
@@ -1146,29 +1146,16 @@ function updateTotalDisplay() {
     const bannerTitle = document.getElementById('banner-month-name');
     if (bannerTitle) bannerTitle.textContent = `TOTAL DE ${monthName} (${bannerYear})`;
     
-    // Reset category spent
-    currentCategories.forEach(cat => cat.spent = 0);
-
-    let total = 0;
-    currentExpenses.forEach(exp => {
-        const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
-        const baseDate = exp.dueDate || exp.date;
-
-        let val = 0;
-        if (isParcelado) {
-            const currentInst = getInstallmentStatus(baseDate, exp.installments, bannerMonth, bannerYear);
-            if (currentInst) val = exp.value;
-        } else {
-            const expDate = new Date(baseDate);
-            if (expDate.getMonth() === bannerMonth && expDate.getFullYear() === bannerYear) val = exp.value;
-        }
-
-        if (val > 0) {
-            total += val;
-            const cat = currentCategories.find(c => c.id === exp.categoryId);
-            if (cat) cat.spent = (cat.spent || 0) + val;
-        }
+    // Calculate category spending
+    const categoryTotals = calculateCategorySpending(currentExpenses, currentCategories, bannerMonth, bannerYear);
+    
+    // Update currentCategories with calculated spent values
+    currentCategories.forEach(cat => {
+        cat.spent = categoryTotals[cat.id] || 0;
     });
+
+    // Calculate main total
+    const total = Object.values(categoryTotals).reduce((acc, val) => acc + val, 0);
     const mainTotal = document.getElementById('main-total-spent');
     if (mainTotal) mainTotal.textContent = formatCurrency(total);
 

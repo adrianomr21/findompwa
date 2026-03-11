@@ -114,6 +114,39 @@ export function calculateDueDate(purchaseDate, paymentMethod) {
 }
 
 /**
+ * Calcula o total gasto por categoria em um determinado mês e ano.
+ * @param {Array} expenses Lista de despesas.
+ * @param {Array} categories Lista de categorias.
+ * @param {number} month Mês (0-11).
+ * @param {number} year Ano.
+ * @returns {Object} Um mapa de totais por ID de categoria.
+ */
+export function calculateCategorySpending(expenses, categories, month, year) {
+    const totals = {};
+    categories.forEach(cat => totals[cat.id] = 0);
+
+    expenses.forEach(exp => {
+        const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
+        const baseDate = exp.dueDate || exp.date;
+
+        let val = 0;
+        if (isParcelado) {
+            const currentInst = getInstallmentStatus(baseDate, exp.installments, month, year);
+            if (currentInst) val = exp.value;
+        } else {
+            const expDate = new Date(baseDate);
+            if (expDate.getMonth() === month && expDate.getFullYear() === year) val = exp.value;
+        }
+
+        if (val > 0 && totals[exp.categoryId] !== undefined) {
+            totals[exp.categoryId] += val;
+        }
+    });
+
+    return totals;
+}
+
+/**
  * Exibe uma notificação toast na tela.
  * @param {string} message Mensagem a ser exibida
  * @param {string} type Tipo da notificação: 'success', 'error', 'info'

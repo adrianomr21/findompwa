@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateTotal, calculateInstallments, getInstallmentStatus } from '../js/utils.js';
+import { calculateTotal, calculateInstallments, getInstallmentStatus, calculateCategorySpending } from '../js/utils.js';
 
 describe('Fin - Utility Functions', () => {
     
@@ -46,6 +46,43 @@ describe('Fin - Utility Functions', () => {
 
         it('deve retornar null se a despesa já terminou', () => {
             expect(getInstallmentStatus(date, 3, 4, 2026)).toBe(null);
+        });
+    });
+
+    describe('calculateCategorySpending', () => {
+        const categories = [
+            { id: 'cat1', name: 'Alimentação', limit: 1000 },
+            { id: 'cat2', name: 'Transporte', limit: 500 }
+        ];
+
+        const expenses = [
+            { value: 100, categoryId: 'cat1', date: '2026-03-10T12:00:00Z', type: 'a-vista' },
+            { value: 50, categoryId: 'cat1', date: '2026-03-15T12:00:00Z', type: 'a-vista' },
+            { value: 200, categoryId: 'cat2', date: '2026-03-20T12:00:00Z', type: 'a-vista' },
+            { value: 300, categoryId: 'cat1', date: '2026-04-10T12:00:00Z', type: 'a-vista' }, // Outro mês
+            { value: 100, categoryId: 'cat1', date: '2026-01-10T12:00:00Z', type: 'parcelado', installments: 3 } // Março é parcela 3
+        ];
+
+        it('deve calcular corretamente os gastos por categoria para Março 2026', () => {
+            const res = calculateCategorySpending(expenses, categories, 2, 2026); // Março = 2
+            expect(res['cat1']).toBe(100 + 50 + 100); // 250
+            expect(res['cat2']).toBe(200);
+        });
+
+        it('deve retornar 0 para categorias sem gastos no período', () => {
+            const res = calculateCategorySpending(expenses, categories, 5, 2026); // Junho = 5
+            expect(res['cat1']).toBe(0);
+            expect(res['cat2']).toBe(0);
+        });
+
+        it('deve considerar apenas despesas com categorias válidas', () => {
+            const invalidExp = [
+                { value: 500, categoryId: 'non-existent', date: '2026-03-10T12:00:00Z', type: 'a-vista' }
+            ];
+            const res = calculateCategorySpending(invalidExp, categories, 2, 2026);
+            expect(Object.keys(res)).toHaveLength(2);
+            expect(res['cat1']).toBe(0);
+            expect(res['cat2']).toBe(0);
         });
     });
 });
