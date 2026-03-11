@@ -950,6 +950,7 @@ async function loadPaymentsData() {
                     grouped[exp.paymentMethodId] = {
                         sourceId: exp.paymentMethodId,
                         name: method ? method.name : 'Outros',
+                        notes: method ? method.notes : '',
                         type: 'cartao',
                         originalValue: 0,
                         dueDate: calculateDueDateForMonth(method, payMonth, payYear),
@@ -966,6 +967,7 @@ async function loadPaymentsData() {
             grouped[sourceId] = {
                 sourceId: sourceId,
                 name: debt.name,
+                notes: debt.notes || '',
                 type: 'fixa',
                 originalValue: debt.value,
                 dueDate: new Date(payYear, payMonth, debt.paymentDay).toISOString(),
@@ -1022,6 +1024,11 @@ function renderPayments() {
                 </div>
 
                 <div class="payment-actions">
+                    ${pay.notes ? `
+                        <button class="btn-icon-only" onclick="showPaymentNote('${pay.sourceId}')" title="Ver Notas">
+                            <i class="bi bi-chat-left-text"></i>
+                        </button>
+                    ` : ''}
                     <button class="btn-icon-only" onclick="toggleIgnorePayment('${pay.sourceId}')">
                         <i class="bi ${eyeIcon}"></i>
                     </button>
@@ -1036,6 +1043,21 @@ function renderPayments() {
         `;
     }).join('');
 }
+
+window.showPaymentNote = (sourceId) => {
+    const pay = currentPaymentsData.find(p => p.sourceId === sourceId);
+    if (pay && pay.notes) {
+        const modal = document.getElementById('modal-payment-note');
+        const title = document.getElementById('modal-note-title');
+        const text = document.getElementById('modal-note-text');
+        
+        if (modal && title && text) {
+            title.textContent = `Notas: ${pay.name}`;
+            text.textContent = pay.notes;
+            modal.classList.add('active');
+        }
+    }
+};
 
 function updatePayTotalDisplay() {
     const monthName = new Date(payYear, payMonth).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
