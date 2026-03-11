@@ -443,6 +443,30 @@
         </div>
     </div>
 
+    <!-- Modal para Editar Valor do Pagamento -->
+    <div id="modal-edit-payment-value" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3>Ajustar Valor Pago</h3>
+                <button class="close-modal"><i class="bi bi-x-lg"></i></button>
+            </header>
+            <form id="form-edit-payment-value">
+                <input type="hidden" id="edit-pay-source-id">
+                <p id="edit-pay-label" style="margin-bottom: 15px; color: var(--text-muted);"></p>
+                
+                <div class="value-input-wrapper small">
+                    <span class="currency">R$</span>
+                    <input type="number" id="edit-pay-actual-value" step="0.01" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-main">Salvar Valor</button>
+                    <button type="button" class="btn-sub close-modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Container para notificações Toast -->
     <div id="toast-container" class="toast-container"></div>
 

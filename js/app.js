@@ -1122,17 +1122,37 @@ async function savePaymentStatus(pay) {
 window.openEditPaymentValue = (sourceId) => {
     const pay = currentPaymentsData.find(p => p.sourceId === sourceId);
     if (!pay) return;
-    const newValue = prompt(`Informe o valor real pago para ${pay.name}:`, pay.actualValue);
-    if (newValue !== null) {
-        const val = parseFloat(newValue.replace(',', '.'));
-        if (!isNaN(val)) {
-            pay.actualValue = val;
-            savePaymentStatus(pay);
-            renderPayments();
-            updatePayTotalDisplay();
-        }
+
+    const modal = document.getElementById('modal-edit-payment-value');
+    const label = document.getElementById('edit-pay-label');
+    const inputVal = document.getElementById('edit-pay-actual-value');
+    const inputSource = document.getElementById('edit-pay-source-id');
+
+    if (modal && label && inputVal && inputSource) {
+        label.textContent = `Informe o valor real pago para ${pay.name}:`;
+        inputVal.value = pay.actualValue;
+        inputSource.value = sourceId;
+        modal.classList.add('active');
     }
 };
+
+const formEditPayValue = document.getElementById('form-edit-payment-value');
+if (formEditPayValue) {
+    formEditPayValue.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const sourceId = document.getElementById('edit-pay-source-id').value;
+        const newValue = parseFloat(document.getElementById('edit-pay-actual-value').value);
+        
+        const pay = currentPaymentsData.find(p => p.sourceId === sourceId);
+        if (pay && !isNaN(newValue)) {
+            pay.actualValue = newValue;
+            await savePaymentStatus(pay);
+            renderPayments();
+            updatePayTotalDisplay();
+            document.getElementById('modal-edit-payment-value').classList.remove('active');
+        }
+    });
+}
 
 // Funções de Navegação e Cálculo do Banner / Pagamentos
 function initBannerDate() {
