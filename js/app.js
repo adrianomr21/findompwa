@@ -647,6 +647,7 @@ function generateSettingsFields(type, data = {}) {
             <div id="boleto-fields" class="field-group span-2 ${data.type === 'boleto' ? '' : 'hidden'}">
                 <label>Dia Vencimento</label><input type="number" id="pay-due" min="1" max="31" value="${data.dueDay || ''}">
             </div>
+            <div class="field-group span-2"><label>Notas</label><textarea id="pay-notes">${data.notes || ''}</textarea></div>
         `;
         const payType = document.getElementById('pay-type');
         payType.addEventListener('change', (e) => {
@@ -675,6 +676,7 @@ if (formSettings) {
         } else if (type === 'paymentMethod') {
             data.name = document.getElementById('pay-name').value;
             data.type = document.getElementById('pay-type').value;
+            data.notes = document.getElementById('pay-notes').value;
             if (data.type === 'credito') {
                 data.startDay = parseInt(document.getElementById('pay-start').value);
                 data.endDay = parseInt(document.getElementById('pay-end').value);
@@ -838,9 +840,17 @@ function getDetailsByType(type, item) {
         `;
     }
     if (type === 'paymentMethod') {
-        if (item.type === 'credito') return `Crédito - Vence dia ${item.paymentDay}`;
-        if (item.type === 'boleto') return `Boleto - Vence dia ${item.dueDay}`;
-        return 'À Vista / Débito';
+        let details = '';
+        if (item.type === 'credito') details = `Crédito - Vence dia ${item.paymentDay}`;
+        else if (item.type === 'boleto') details = `Boleto - Vence dia ${item.dueDay}`;
+        else details = 'À Vista / Débito';
+
+        if (item.notes) {
+            details += `<div class="item-notes" style="margin-top: 4px; font-size: 0.85rem; color: #8b949e; font-style: italic;">
+                <i class="bi bi-info-circle"></i> ${item.notes}
+            </div>`;
+        }
+        return details;
     }
     if (type === 'fixedDebt') return `Valor: R$ ${item.value.toFixed(2)} - Dia ${item.paymentDay}`;
     return '';
