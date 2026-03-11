@@ -356,7 +356,7 @@ function renderHistory(expenses) {
         return `
             <div class="history-item">
                 <div class="history-info">
-                    <span class="history-name">${exp.description} ${installmentBadge}</span>
+                    <span class="history-name">${installmentBadge} ${exp.description} </span>
                     <div class="history-meta">
                         <span><i class="bi bi-tag"></i> ${cat ? cat.name : 'Sem Cat.'}</span>
                         <span><i class="bi bi-calendar3"></i> ${displayDate}</span>
