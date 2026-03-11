@@ -31,6 +31,14 @@ const appWrapper = document.getElementById('app-wrapper');
 const btnLoginGoogle = document.getElementById('btn-login-google');
 const btnLogout = document.getElementById('btn-logout');
 
+// Elementos da barra de progresso de categoria (Cadastro)
+const catSelectProgress = document.getElementById('reg-category');
+const progressContainer = document.getElementById('category-progress-container');
+const progressFill = document.getElementById('progress-fill');
+const progSpent = document.getElementById('prog-spent');
+const progTotal = document.getElementById('prog-total');
+const progText = document.getElementById('prog-text');
+
 // Elementos de alternância Login/Cadastro
 const loginBox = document.getElementById('auth-login-box');
 const signupBox = document.getElementById('auth-signup-box');
@@ -579,105 +587,6 @@ async function loadAllSettings() {
     }
 }
 
-function renderSettingsLists() {
-    renderList('list-categories', currentCategories, 'category');
-    renderList('list-payment-methods', currentPaymentMethods, 'paymentMethod');
-    renderList('list-fixed-debts', currentFixedDebts, 'fixedDebt');
-}
-
-function renderList(elementId, items, type) {
-    const list = document.getElementById(elementId);
-    if (!list) return;
-    if (items.length === 0) {
-        list.innerHTML = '<div class="list-empty">Nenhum item cadastrado.</div>';
-        return;
-    }
-    list.innerHTML = items.map(item => `
-        <div class="settings-item">
-            <div class="item-info">
-                <span class="item-name">${item.name}</span>
-                <span class="item-details">${getDetailsByType(type, item)}</span>
-            </div>
-            <button class="btn-edit-item" data-id="${item.id}" data-type="${type}">
-                <i class="bi bi-pencil-square"></i>
-            </button>
-        </div>
-    `).join('');
-    list.querySelectorAll('.btn-edit-item').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const id = btn.dataset.id;
-            const type = btn.dataset.type;
-            const item = items.find(i => i.id === id);
-            openSettingsModal(type, item);
-        });
-    });
-}
-
-function getDetailsByType(type, item) {
-    if (type === 'category') return `Limite: R$ ${item.limit.toFixed(2)}`;
-    if (type === 'paymentMethod') {
-        if (item.type === 'credito') return `Crédito - Vence dia ${item.paymentDay}`;
-        if (item.type === 'boleto') return `Boleto - Vence dia ${item.dueDay}`;
-        return 'À Vista / Débito';
-    }
-    if (type === 'fixedDebt') return `Valor: R$ ${item.value.toFixed(2)} - Dia ${item.paymentDay}`;
-    return '';
-}
-
-function populateSelects() {
-    const catSelect = document.getElementById('reg-category');
-    const paySelect = document.getElementById('reg-payment-method');
-    if (!catSelect || !paySelect) return;
-    catSelect.innerHTML = '<option value="">Selecione...</option>';
-    paySelect.innerHTML = '<option value="">Selecione...</option>';
-    currentCategories.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat.id;
-        opt.textContent = cat.name;
-        catSelect.appendChild(opt);
-    });
-    currentPaymentMethods.forEach(pay => {
-        const opt = document.createElement('option');
-        opt.value = pay.id;
-        opt.textContent = pay.name;
-        paySelect.appendChild(opt);
-    });
-}
-
-const catSelectProgress = document.getElementById('reg-category');
-const progressContainer = document.getElementById('category-progress-container');
-const progressFill = document.getElementById('progress-fill');
-const progSpent = document.getElementById('prog-spent');
-const progTotal = document.getElementById('prog-total');
-const progText = document.getElementById('prog-text');
-
-if (catSelectProgress) {
-    catSelectProgress.addEventListener('change', (e) => {
-        const cat = currentCategories.find(c => c.id === e.target.value);
-        if (cat) {
-            progressContainer.classList.remove('hidden');
-            const spent = cat.spent || 0; 
-            const remaining = cat.limit - spent;
-            const percent = Math.min(100, Math.round((spent / cat.limit) * 100));
-            progSpent.textContent = `Gasto: R$ ${spent.toFixed(2)}`;
-            progTotal.textContent = `Limite: R$ ${cat.limit.toFixed(2)}`;
-            progressFill.style.width = `${percent}%`;
-            if (percent >= 100) {
-                progressFill.style.backgroundColor = '#ff7675';
-                progText.textContent = `Atenção: Limite atingido!`;
-            } else if (percent > 85) {
-                progressFill.style.backgroundColor = '#fdcb6e';
-                progText.textContent = `Quase lá: Restam R$ ${remaining.toFixed(2)}`;
-            } else {
-                progressFill.style.backgroundColor = '#00b894';
-                progText.textContent = `Equilibrado: Restam R$ ${remaining.toFixed(2)}`;
-            }
-        } else {
-            progressContainer.classList.add('hidden');
-        }
-    });
-}
-
 const modalSettings = document.getElementById('modal-settings');
 const formSettings = document.getElementById('form-settings');
 const btnDeleteSettingsItem = document.getElementById('btn-delete-settings-item');
@@ -690,13 +599,20 @@ function openSettingsModal(type, item = null) {
     const title = document.getElementById('modal-settings-title');
     const itemId = document.getElementById('settings-item-id');
     const itemType = document.getElementById('settings-item-type');
+    if (!itemType || !itemId || !title) return;
+
     itemType.value = type;
     itemId.value = item ? item.id : '';
     title.textContent = item ? `Editar ${getLabel(type)}` : `Nova ${getLabel(type)}`;
-    if (item) btnDeleteSettingsItem.classList.remove('hidden');
-    else btnDeleteSettingsItem.classList.add('hidden');
+    
+    const btnDel = document.getElementById('btn-delete-settings-item');
+    if (btnDel) {
+        if (item) btnDel.classList.remove('hidden');
+        else btnDel.classList.add('hidden');
+    }
+
     generateSettingsFields(type, item || {});
-    modalSettings.classList.add('active');
+    if (modalSettings) modalSettings.classList.add('active');
 }
 
 function getLabel(type) {
@@ -775,7 +691,7 @@ if (formSettings) {
             if (type === 'category') await settingsService.saveCategory(itemWithId);
             if (type === 'paymentMethod') await settingsService.savePaymentMethod(itemWithId);
             if (type === 'fixedDebt') await settingsService.saveFixedDebt(itemWithId);
-            modalSettings.classList.remove('active');
+            if (modalSettings) modalSettings.classList.remove('active');
             showToast("Configuração salva!", 'success');
             loadAllSettings();
         } catch (error) { showToast("Erro ao salvar: " + error.message, 'error'); }
@@ -791,7 +707,7 @@ if (btnDeleteSettingsItem) {
             if (type === 'category') await settingsService.deleteCategory(id);
             if (type === 'paymentMethod') await settingsService.deletePaymentMethod(id);
             if (type === 'fixedDebt') await settingsService.deleteFixedDebt(id);
-            modalSettings.classList.remove('active');
+            if (modalSettings) modalSettings.classList.remove('active');
             showToast("Item excluído!", 'success');
             loadAllSettings();
         } catch (error) { showToast("Erro ao excluir: " + error.message, 'error'); }
@@ -848,15 +764,15 @@ if (btnProcessImport) {
                     userId: auth.currentUser.uid
                 });
                 sucessos++;
-                importStatus.textContent = `Progresso: ${sucessos} de ${despesas.length}...`;
+                if (importStatus) importStatus.textContent = `Progresso: ${sucessos} de ${despesas.length}...`;
             } catch (error) { console.error("Erro import:", error); }
         }
         btnProcessImport.disabled = false;
         btnProcessImport.textContent = "Iniciar Importação";
-        importStatus.textContent = `Concluído! Sucessos: ${sucessos}`;
+        if (importStatus) importStatus.textContent = `Concluído! Sucessos: ${sucessos}`;
         if (sucessos > 0) {
             importTextarea.value = '';
-            setTimeout(() => modalImport.classList.remove('active'), 2000);
+            setTimeout(() => { if (modalImport) modalImport.classList.remove('active'); }, 2000);
         }
     });
 }
@@ -867,65 +783,125 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// Funções de Navegação e Cálculo do Banner / Pagamentos
-function initBannerDate() {
-    const now = new Date();
-    const next = new Date();
-    next.setMonth(now.getMonth() + 1);
-    bannerMonth = next.getMonth();
-    bannerYear = next.getFullYear();
-    payMonth = now.getMonth();
-    payYear = now.getFullYear();
-    updateTotalDisplay();
-    updatePayTotalDisplay();
+function renderSettingsLists() {
+    renderList('list-categories', currentCategories, 'category');
+    renderList('list-payment-methods', currentPaymentMethods, 'paymentMethod');
+    renderList('list-fixed-debts', currentFixedDebts, 'fixedDebt');
 }
 
-function setupBannerNav() {
-    const btnPrev = document.getElementById('btn-banner-prev');
-    const btnNext = document.getElementById('btn-banner-next');
-    const btnPayPrev = document.getElementById('btn-pay-prev');
-    const btnPayNext = document.getElementById('btn-pay-next');
-
-    if (btnPrev) btnPrev.addEventListener('click', () => navigateMonth('banner', -1));
-    if (btnNext) btnNext.addEventListener('click', () => navigateMonth('banner', 1));
-    if (btnPayPrev) btnPayPrev.addEventListener('click', () => navigateMonth('pay', -1));
-    if (btnPayNext) btnPayNext.addEventListener('click', () => navigateMonth('pay', 1));
+function renderList(elementId, items, type) {
+    const list = document.getElementById(elementId);
+    if (!list) return;
+    if (items.length === 0) {
+        list.innerHTML = '<div class="list-empty">Nenhum item cadastrado.</div>';
+        return;
+    }
+    list.innerHTML = items.map(item => `
+        <div class="settings-item">
+            <div class="item-info">
+                <span class="item-name">${item.name}</span>
+                <span class="item-details">${getDetailsByType(type, item)}</span>
+            </div>
+            <button class="btn-edit-item" data-id="${item.id}" data-type="${type}">
+                <i class="bi bi-pencil-square"></i>
+            </button>
+        </div>
+    `).join('');
+    list.querySelectorAll('.btn-edit-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const type = btn.dataset.type;
+            const item = items.find(i => i.id === id);
+            openSettingsModal(type, item);
+        });
+    });
 }
 
-function navigateMonth(type, delta) {
-    if (type === 'banner') {
-        const d = new Date(bannerYear, bannerMonth + delta, 1);
-        bannerMonth = d.getMonth();
-        bannerYear = d.getFullYear();
-        updateTotalDisplay();
+function getDetailsByType(type, item) {
+    if (type === 'category') {
+        const spent = item.spent || 0;
+        const percent = Math.min(100, Math.round((spent / item.limit) * 100));
+        let barColor = '#00b894';
+        if (percent >= 100) barColor = '#ff7675';
+        else if (percent > 85) barColor = '#fdcb6e';
+
+        return `
+            <div class="category-progress" style="margin-top: 8px; padding: 0; background: none; border: none; animation: none;">
+                <div class="progress-labels" style="margin-bottom: 4px;">
+                    <span>Gasto: R$ ${spent.toFixed(2)}</span>
+                    <span>Limite: R$ ${item.limit.toFixed(2)}</span>
+                </div>
+                <div class="progress-bar-bg" style="height: 6px;">
+                    <div class="progress-bar-fill" style="width: ${percent}%; background-color: ${barColor};"></div>
+                </div>
+            </div>
+        `;
+    }
+    if (type === 'paymentMethod') {
+        if (item.type === 'credito') return `Crédito - Vence dia ${item.paymentDay}`;
+        if (item.type === 'boleto') return `Boleto - Vence dia ${item.dueDay}`;
+        return 'À Vista / Débito';
+    }
+    if (type === 'fixedDebt') return `Valor: R$ ${item.value.toFixed(2)} - Dia ${item.paymentDay}`;
+    return '';
+}
+
+function populateSelects() {
+    const catSelect = document.getElementById('reg-category');
+    const paySelect = document.getElementById('reg-payment-method');
+    if (!catSelect || !paySelect) return;
+    catSelect.innerHTML = '<option value="">Selecione...</option>';
+    paySelect.innerHTML = '<option value="">Selecione...</option>';
+    currentCategories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = cat.name;
+        catSelect.appendChild(opt);
+    });
+    currentPaymentMethods.forEach(pay => {
+        const opt = document.createElement('option');
+        opt.value = pay.id;
+        opt.textContent = pay.name;
+        paySelect.appendChild(opt);
+    });
+}
+
+function updateCategoryProgressBar(categoryId) {
+    if (!progressContainer || !progressFill || !progSpent || !progTotal || !progText) return;
+    
+    if (!categoryId) {
+        progressContainer.classList.add('hidden');
+        return;
+    }
+
+    const cat = currentCategories.find(c => c.id === categoryId);
+    if (cat) {
+        progressContainer.classList.remove('hidden');
+        const spent = cat.spent || 0; 
+        const remaining = cat.limit - spent;
+        const percent = Math.min(100, Math.round((spent / cat.limit) * 100));
+        progSpent.textContent = `Gasto: R$ ${spent.toFixed(2)}`;
+        progTotal.textContent = `Limite: R$ ${cat.limit.toFixed(2)}`;
+        progressFill.style.width = `${percent}%`;
+        if (percent >= 100) {
+            progressFill.style.backgroundColor = '#ff7675';
+            progText.textContent = `Atenção: Limite atingido!`;
+        } else if (percent > 85) {
+            progressFill.style.backgroundColor = '#fdcb6e';
+            progText.textContent = `Quase lá: Restam R$ ${remaining.toFixed(2)}`;
+        } else {
+            progressFill.style.backgroundColor = '#00b894';
+            progText.textContent = `Equilibrado: Restam R$ ${remaining.toFixed(2)}`;
+        }
     } else {
-        const d = new Date(payYear, payMonth + delta, 1);
-        payMonth = d.getMonth();
-        payYear = d.getFullYear();
-        loadPaymentsData();
+        progressContainer.classList.add('hidden');
     }
 }
 
-function updateTotalDisplay() {
-    const monthName = new Date(bannerYear, bannerMonth).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
-    const bannerTitle = document.getElementById('banner-month-name');
-    if (bannerTitle) bannerTitle.textContent = `TOTAL DE ${monthName} (${bannerYear})`;
-    
-    let total = 0;
-    currentExpenses.forEach(exp => {
-        const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
-        const baseDate = exp.dueDate || exp.date;
-
-        if (isParcelado) {
-            const currentInst = getInstallmentStatus(baseDate, exp.installments, bannerMonth, bannerYear);
-            if (currentInst) total += exp.value;
-        } else {
-            const expDate = new Date(baseDate);
-            if (expDate.getMonth() === bannerMonth && expDate.getFullYear() === bannerYear) total += exp.value;
-        }
+if (catSelectProgress) {
+    catSelectProgress.addEventListener('change', (e) => {
+        updateCategoryProgressBar(e.target.value);
     });
-    const mainTotal = document.getElementById('main-total-spent');
-    if (mainTotal) mainTotal.textContent = formatCurrency(total);
 }
 
 async function loadPaymentsData() {
@@ -1125,6 +1101,85 @@ window.openEditPaymentValue = (sourceId) => {
         }
     }
 };
+
+// Funções de Navegação e Cálculo do Banner / Pagamentos
+function initBannerDate() {
+    const now = new Date();
+    const next = new Date();
+    next.setMonth(now.getMonth() + 1);
+    bannerMonth = next.getMonth();
+    bannerYear = next.getFullYear();
+    payMonth = now.getMonth();
+    payYear = now.getFullYear();
+    updateTotalDisplay();
+    updatePayTotalDisplay();
+}
+
+function setupBannerNav() {
+    const btnPrev = document.getElementById('btn-banner-prev');
+    const btnNext = document.getElementById('btn-banner-next');
+    const btnPayPrev = document.getElementById('btn-pay-prev');
+    const btnPayNext = document.getElementById('btn-pay-next');
+
+    if (btnPrev) btnPrev.addEventListener('click', () => navigateMonth('banner', -1));
+    if (btnNext) btnNext.addEventListener('click', () => navigateMonth('banner', 1));
+    if (btnPayPrev) btnPayPrev.addEventListener('click', () => navigateMonth('pay', -1));
+    if (btnPayNext) btnPayNext.addEventListener('click', () => navigateMonth('pay', 1));
+}
+
+function navigateMonth(type, delta) {
+    if (type === 'banner') {
+        const d = new Date(bannerYear, bannerMonth + delta, 1);
+        bannerMonth = d.getMonth();
+        bannerYear = d.getFullYear();
+        updateTotalDisplay();
+    } else {
+        const d = new Date(payYear, payMonth + delta, 1);
+        payMonth = d.getMonth();
+        payYear = d.getFullYear();
+        loadPaymentsData();
+    }
+}
+
+function updateTotalDisplay() {
+    const monthName = new Date(bannerYear, bannerMonth).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+    const bannerTitle = document.getElementById('banner-month-name');
+    if (bannerTitle) bannerTitle.textContent = `TOTAL DE ${monthName} (${bannerYear})`;
+    
+    // Reset category spent
+    currentCategories.forEach(cat => cat.spent = 0);
+
+    let total = 0;
+    currentExpenses.forEach(exp => {
+        const isParcelado = exp.type === 'parcelado' && exp.installments > 1;
+        const baseDate = exp.dueDate || exp.date;
+
+        let val = 0;
+        if (isParcelado) {
+            const currentInst = getInstallmentStatus(baseDate, exp.installments, bannerMonth, bannerYear);
+            if (currentInst) val = exp.value;
+        } else {
+            const expDate = new Date(baseDate);
+            if (expDate.getMonth() === bannerMonth && expDate.getFullYear() === bannerYear) val = exp.value;
+        }
+
+        if (val > 0) {
+            total += val;
+            const cat = currentCategories.find(c => c.id === exp.categoryId);
+            if (cat) cat.spent = (cat.spent || 0) + val;
+        }
+    });
+    const mainTotal = document.getElementById('main-total-spent');
+    if (mainTotal) mainTotal.textContent = formatCurrency(total);
+
+    // Update progress bar if a category is selected in the form
+    if (catSelectProgress && catSelectProgress.value) {
+        updateCategoryProgressBar(catSelectProgress.value);
+    }
+
+    // Refresh settings lists to show category spending there too
+    renderSettingsLists();
+}
 
 // Start
 document.addEventListener('DOMContentLoaded', () => {
