@@ -68,6 +68,9 @@
                 <button data-screen="payments">
                     <i class="bi bi-credit-card"></i><span>Pagar</span>
                 </button>
+                <button data-screen="cart">
+                    <i class="bi bi-cart3"></i><span>Carrinho</span>
+                </button>
                 <button data-screen="settings">
                     <i class="bi bi-sliders"></i><span>Ajustes</span>
                 </button>
@@ -287,6 +290,27 @@
                 </div>
             </section>
 
+            <section id="screen-cart" class="screen">
+                <header class="section-header">
+                    <h1>Meus Carrinhos</h1>
+                    <p>Listas de compras e desejos</p>
+                </header>
+
+                <div class="settings-container">
+                    <div class="settings-group">
+                        <div class="group-header">
+                            <h3><i class="bi bi-cart-plus"></i> Grupos de Compras</h3>
+                            <button class="btn-add-item" id="btn-add-cart">
+                                <i class="bi bi-plus-lg"></i> Novo Carrinho
+                            </button>
+                        </div>
+                        <div id="list-carts" class="cart-groups-list">
+                            <div class="list-empty">Nenhum carrinho cadastrado.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section id="screen-settings" class="screen">
                 <header class="section-header">
                     <h1>Ajustes</h1>
@@ -462,6 +486,49 @@
                 <div class="form-actions">
                     <button type="submit" class="btn-main">Salvar Valor</button>
                     <button type="button" class="btn-sub close-modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Carrinho (Grupo) -->
+    <div id="modal-cart" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 id="modal-cart-title">Novo Carrinho</h3>
+                <button class="close-modal"><i class="bi bi-x-lg"></i></button>
+            </header>
+            <form id="form-cart">
+                <input type="hidden" id="cart-id">
+                <div class="field-group span-2">
+                    <label>Nome do Carrinho</label>
+                    <input type="text" id="cart-name" placeholder="Ex: Mercado, Farmácia..." required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-main">Salvar Carrinho</button>
+                    <button type="button" id="btn-delete-cart" class="btn-danger hidden">Excluir Carrinho</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Item do Carrinho -->
+    <div id="modal-cart-item" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3 id="modal-cart-item-title">Novo Item</h3>
+                <button class="close-modal"><i class="bi bi-x-lg"></i></button>
+            </header>
+            <form id="form-cart-item">
+                <input type="hidden" id="cart-item-id">
+                <input type="hidden" id="cart-item-parent-id">
+                <div class="field-group span-2">
+                    <label>Nome do Item</label>
+                    <input type="text" id="cart-item-name" placeholder="Ex: Arroz, Remédio..." required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-main">Salvar Item</button>
+                    <button type="button" id="btn-delete-cart-item" class="btn-danger hidden">Excluir Item</button>
                 </div>
             </form>
         </div>

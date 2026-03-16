@@ -533,12 +533,154 @@ input:focus, select:focus { border-color: var(--accent); }
 
 .import-status.success { color: var(--accent); }
 .import-status.error { color: #ff7675; }
-
 /* Ajustes / Settings Screen */
 .settings-container {
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: 20px;
+}
+
+/* Carrinho */
+.cart-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 20px;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+    transition: 0.3s;
+}
+
+.cart-card:hover {
+    border-color: var(--accent);
+}
+
+.cart-title-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cart-name {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.cart-header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-add-item.small {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    height: auto;
+}
+
+.cart-items-list {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cart-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: 0.2s;
+}
+
+.cart-item-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cart-item-row.bought {
+    opacity: 0.4;
+}
+
+.cart-item-row.bought .item-text {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.cart-item-check {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    flex-grow: 1;
+    user-select: none;
+}
+
+.cart-item-check input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    width: 24px;
+    height: 24px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    display: inline-block;
+    position: relative;
+    transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cart-item-check:hover .checkmark {
+    border-color: var(--accent);
+}
+
+.cart-item-check input:checked + .checkmark {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 15px rgba(0, 184, 148, 0.3);
+}
+
+.cart-item-check input:checked + .checkmark::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 3px;
+    width: 6px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.item-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text);
+    transition: 0.2s;
+}
+
+.item-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.item-actions .btn-icon-only {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+.item-actions .btn-icon-only:hover {
+    color: var(--accent);
+    opacity: 1;
+}
     width: 100%;
 }
 

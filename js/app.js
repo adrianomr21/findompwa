@@ -2,6 +2,7 @@ import firebaseConfig from './firebase-config.js';
 import { AuthService } from './auth-service.js';
 import { ImportService } from './import-service.js';
 import { SettingsService } from './settings-service.js';
+import { CartService } from './cart-service.js';
 import { formatCurrency, getInstallmentStatus, calculateDueDate, showToast, calculatePayTotal, calculateDueDateForMonth, calculateCategorySpending } from './utils.js';
 
 // Inicializar Firebase
@@ -10,14 +11,26 @@ if (!firebase.apps.length) {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// Habilitar Persistência Offline
+db.enablePersistence().catch(err => {
+    if (err.code == 'failed-precondition') {
+        console.warn("Persistência falhou: múltiplas abas abertas.");
+    } else if (err.code == 'unimplemented') {
+        console.warn("Navegador não suporta persistência.");
+    }
+});
+
 const provider = new firebase.auth.GoogleAuthProvider();
 const authService = new AuthService(auth);
 
 let settingsService = null;
+let cartService = null;
 let currentCategories = [];
 let currentPaymentMethods = [];
 let currentFixedDebts = [];
 let currentExpenses = [];
+let currentCarts = [];
 let categoryChart = null;
 
 let bannerMonth = 0;
@@ -92,12 +105,14 @@ auth.onAuthStateChanged(user => {
         authScreen.classList.remove('active');
         appWrapper.style.display = 'flex';
         settingsService = new SettingsService(db, user.uid);
+        cartService = new CartService(db, user.uid);
         loadAllSettings();
         console.log("Usuário logado:", user.email);
     } else {
         authScreen.classList.add('active');
         appWrapper.style.display = 'none';
         settingsService = null;
+        cartService = null;
     }
 });
 
@@ -135,9 +150,9 @@ function showScreen(screenId) {
     if (screenId === 'payments') {
         loadPaymentsData();
     }
-    
-    if (window.navigator.vibrate) {
-        window.navigator.vibrate(5);
+
+    if (screenId === 'cart') {
+        loadCartData();
     }
     
     window.scrollTo(0, 0);
@@ -1219,6 +1234,230 @@ function updateTotalDisplay() {
     // Refresh settings lists to show category spending there too
     renderSettingsLists();
 }
+
+// --- LÓGICA DE CARRINHO ---
+const modalCart = document.getElementById('modal-cart');
+const formCart = document.getElementById('form-cart');
+const btnDeleteCart = document.getElementById('btn-delete-cart');
+const modalCartItem = document.getElementById('modal-cart-item');
+const formCartItem = document.getElementById('form-cart-item');
+const btnDeleteCartItem = document.getElementById('btn-delete-cart-item');
+
+if (document.getElementById('btn-add-cart')) {
+    document.getElementById('btn-add-cart').addEventListener('click', () => openCartModal());
+}
+
+async function loadCartData() {
+    if (!cartService) return;
+    const list = document.getElementById('list-carts');
+    if (list) list.innerHTML = '<div class="list-empty">Carregando carrinhos...</div>';
+
+    try {
+        currentCarts = await cartService.getCarts();
+        
+        // Carregar itens para cada carrinho
+        for (let cart of currentCarts) {
+            cart.items = await cartService.getItems(cart.id);
+        }
+
+        renderCarts();
+    } catch (error) {
+        console.error("Erro ao carregar carrinhos:", error);
+    }
+}
+
+function renderCarts() {
+    const list = document.getElementById('list-carts');
+    if (!list) return;
+
+    if (currentCarts.length === 0) {
+        list.innerHTML = '<div class="list-empty">Nenhum carrinho cadastrado.</div>';
+        return;
+    }
+
+    list.innerHTML = currentCarts.map(cart => `
+        <div class="settings-group cart-card">
+            <div class="group-header">
+                <div class="cart-title-info">
+                    <h3 class="cart-name">${cart.name}</h3>
+                    <span class="badge">${cart.items.length} itens</span>
+                </div>
+                <div class="cart-header-actions">
+                    <button class="btn-edit-item" onclick="openCartModal('${cart.id}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn-add-item small" onclick="openCartItemModal(null, '${cart.id}')">
+                        <i class="bi bi-plus-lg"></i> Item
+                    </button>
+                </div>
+            </div>
+            <div class="cart-items-list">
+                ${cart.items.length === 0 ? '<div class="list-empty">Vazio</div>' : 
+                    cart.items.map(item => `
+                    <div class="cart-item-row ${item.bought ? 'bought' : ''}">
+                        <label class="cart-item-check">
+                            <input type="checkbox" ${item.bought ? 'checked' : ''} onchange="toggleCartItemStatus('${item.id}', this.checked)">
+                            <span class="checkmark"></span>
+                            <span class="item-text">${item.name}</span>
+                        </label>
+                        <div class="item-actions">
+                            <button class="btn-icon-only" onclick="openCartItemModal('${item.id}', '${cart.id}')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+window.openCartModal = function(cartId = null) {
+    const title = document.getElementById('modal-cart-title');
+    const inputId = document.getElementById('cart-id');
+    const inputName = document.getElementById('cart-name');
+    
+    if (cartId) {
+        const cart = currentCarts.find(c => c.id === cartId);
+        if (cart) {
+            title.textContent = "Editar Carrinho";
+            inputId.value = cart.id;
+            inputName.value = cart.name;
+            if (btnDeleteCart) btnDeleteCart.classList.remove('hidden');
+        }
+    } else {
+        title.textContent = "Novo Carrinho";
+        inputId.value = '';
+        inputName.value = '';
+        if (btnDeleteCart) btnDeleteCart.classList.add('hidden');
+    }
+    
+    if (modalCart) modalCart.classList.add('active');
+};
+
+if (formCart) {
+    formCart.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('cart-id').value;
+        const name = document.getElementById('cart-name').value;
+        
+        try {
+            const cartData = { name };
+            if (id) cartData.id = id;
+
+            await cartService.saveCart(cartData);
+            modalCart.classList.remove('active');
+            showToast("Carrinho salvo!", 'success');
+            loadCartData();
+        } catch (error) {
+            showToast("Erro ao salvar carrinho", 'error');
+        }
+    });
+}
+
+if (btnDeleteCart) {
+    btnDeleteCart.addEventListener('click', async () => {
+        const id = document.getElementById('cart-id').value;
+        if (!id) return;
+        if (!confirm("Excluir este carrinho e todos os seus itens?")) return;
+        try {
+            await cartService.deleteCart(id);
+            modalCart.classList.remove('active');
+            showToast("Carrinho excluído!", 'success');
+            loadCartData();
+        } catch (error) {
+            showToast("Erro ao excluir carrinho", 'error');
+        }
+    });
+}
+
+window.openCartItemModal = function(itemId = null, cartId) {
+    const title = document.getElementById('modal-cart-item-title');
+    const inputId = document.getElementById('cart-item-id');
+    const inputParentId = document.getElementById('cart-item-parent-id');
+    const inputName = document.getElementById('cart-item-name');
+    
+    if (inputParentId) inputParentId.value = cartId || '';
+    
+    if (itemId) {
+        const cart = currentCarts.find(c => c.id === cartId);
+        if (cart && cart.items) {
+            const item = cart.items.find(i => i.id === itemId);
+            if (item) {
+                title.textContent = "Editar Item";
+                inputId.value = item.id;
+                inputName.value = item.name;
+                if (btnDeleteCartItem) btnDeleteCartItem.classList.remove('hidden');
+            }
+        }
+    } else {
+        title.textContent = "Novo Item";
+        inputId.value = '';
+        inputName.value = '';
+        if (btnDeleteCartItem) btnDeleteCartItem.classList.add('hidden');
+    }
+    
+    if (modalCartItem) modalCartItem.classList.add('active');
+};
+
+if (formCartItem) {
+    formCartItem.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('cart-item-id').value;
+        const cartId = document.getElementById('cart-item-parent-id').value;
+        const name = document.getElementById('cart-item-name').value;
+        
+        if (!cartId) {
+            showToast("Erro: ID do carrinho não encontrado", 'error');
+            return;
+        }
+
+        try {
+            const itemData = { cartId, name };
+            if (id) itemData.id = id;
+
+            await cartService.saveItem(itemData);
+            modalCartItem.classList.remove('active');
+            showToast("Item salvo!", 'success');
+            loadCartData();
+        } catch (error) {
+            showToast("Erro ao salvar item", 'error');
+        }
+    });
+}
+
+if (btnDeleteCartItem) {
+    btnDeleteCartItem.addEventListener('click', async () => {
+        const id = document.getElementById('cart-item-id').value;
+        if (!confirm("Excluir este item?")) return;
+        try {
+            await cartService.deleteItem(id);
+            modalCartItem.classList.remove('active');
+            showToast("Item excluído!", 'success');
+            loadCartData();
+        } catch (error) {
+            showToast("Erro ao excluir item", 'error');
+        }
+    });
+}
+
+window.toggleCartItemStatus = async function(itemId, bought) {
+    try {
+        await cartService.toggleItemBought(itemId, bought);
+        // Atualizar localmente para feedback rápido
+        for (let cart of currentCarts) {
+            const item = cart.items.find(i => i.id === itemId);
+            if (item) {
+                item.bought = bought;
+                break;
+            }
+        }
+        renderCarts();
+        if (window.navigator.vibrate) window.navigator.vibrate(10);
+    } catch (error) {
+        showToast("Erro ao atualizar item", 'error');
+    }
+};
 
 // Start
 document.addEventListener('DOMContentLoaded', () => {

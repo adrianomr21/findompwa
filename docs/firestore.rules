@@ -2,26 +2,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 1. Bloqueio padrão
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // 2. Subcoleções do usuário (/users/{uid}/...)
+    // 1. Regras para subcoleções do usuário (Caminho: /users/{userId}/...)
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 3. Coleção global de Despesas
-    match /despesas/{docId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    // 2. Regras para coleções globais (Documentos com campo userId)
+    
+    function isOwner() {
+      return request.auth != null && (
+        (resource != null && resource.data.userId == request.auth.uid) || 
+        (resource == null && request.resource.data.userId == request.auth.uid)
+      );
     }
 
-    // 4. Nova coleção de Faturas (Status de Pagamento)
-    match /faturas/{docId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    // Coleções Globais
+    match /despesas/{id} { allow read, write: if isOwner(); }
+    match /faturas/{id} { allow read, write: if isOwner(); }
+    match /carrinhos/{id} { allow read, write: if isOwner(); }
+    match /carrinho_itens/{id} { allow read, write: if isOwner(); }
+    
+    // Bloqueio padrão para qualquer outra coisa
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
