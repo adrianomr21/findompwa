@@ -542,12 +542,17 @@ input:focus, select:focus { border-color: var(--accent); }
 
 /* Carrinho */
 .cart-card {
-    background: var(--bg-card);
-    border-radius: var(--radius);
-    padding: 20px;
-    border: 1px solid var(--border);
-    margin-bottom: 20px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    padding: 16px 0;
+    margin-bottom: 12px;
     transition: 0.3s;
+}
+
+.cart-card:last-of-type {
+    border-bottom: none;
 }
 
 .cart-card:hover {

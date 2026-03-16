@@ -1256,9 +1256,11 @@ async function loadCartData() {
     try {
         currentCarts = await cartService.getCarts();
         
-        // Carregar itens para cada carrinho
+        // Carregar itens para cada carrinho e iniciar todos recolhidos
+        collapsedCarts = new Set();
         for (let cart of currentCarts) {
             cart.items = await cartService.getItems(cart.id);
+            collapsedCarts.add(cart.id); // Inicia recolhido
         }
 
         renderCarts();
