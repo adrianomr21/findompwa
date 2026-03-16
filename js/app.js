@@ -1444,12 +1444,31 @@ if (formCartItem) {
                     return;
                 }
 
-                // Salvar todos em paralelo (ou sequencial se preferir)
-                // Para manter a ordem de criação correta conforme digitado, vamos fazer sequencial ou usar Promise.all
-                // Como Firestore add é rápido, Promise.all é ok, mas a ordem pode variar levemente.
-                // Mas o getItems do cart-service já ordena por createdAt.
-                
+                // Buscar itens existentes para evitar duplicados
+                const existingItems = await cartService.getItems(cartId);
+                const existingNames = new Set(existingItems.map(item => item.name.toLowerCase().trim()));
+
+                // Filtrar nomes para remover os que já existem no banco E duplicatas na própria lista
+                const namesToProcess = [];
+                const processedInThisBatch = new Set();
+
                 for (const name of names) {
+                    const normalized = name.toLowerCase().trim();
+                    if (!existingNames.has(normalized) && !processedInThisBatch.has(normalized)) {
+                        namesToProcess.push(name);
+                        processedInThisBatch.add(normalized);
+                    }
+                }
+
+                // Se todos os itens já existirem, apenas fecha o modal sem notificar
+                if (namesToProcess.length === 0) {
+                    modalCartItem.classList.remove('active');
+                    loadCartData();
+                    return;
+                }
+
+                // Salvar novos itens
+                for (const name of namesToProcess) {
                     await cartService.saveItem({ cartId, name });
                 }
             }
