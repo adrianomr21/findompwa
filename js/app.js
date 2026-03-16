@@ -1242,6 +1242,7 @@ const btnDeleteCart = document.getElementById('btn-delete-cart');
 const modalCartItem = document.getElementById('modal-cart-item');
 const formCartItem = document.getElementById('form-cart-item');
 const btnDeleteCartItem = document.getElementById('btn-delete-cart-item');
+let collapsedCarts = new Set(); // Estado para carrinhos recolhidos
 
 if (document.getElementById('btn-add-cart')) {
     document.getElementById('btn-add-cart').addEventListener('click', () => openCartModal());
@@ -1266,6 +1267,15 @@ async function loadCartData() {
     }
 }
 
+window.toggleCartCollapse = function(cartId) {
+    if (collapsedCarts.has(cartId)) {
+        collapsedCarts.delete(cartId);
+    } else {
+        collapsedCarts.add(cartId);
+    }
+    renderCarts();
+};
+
 function renderCarts() {
     const list = document.getElementById('list-carts');
     if (!list) return;
@@ -1275,19 +1285,24 @@ function renderCarts() {
         return;
     }
 
-    list.innerHTML = currentCarts.map(cart => `
-        <div class="settings-group cart-card">
+    list.innerHTML = currentCarts.map(cart => {
+        const isCollapsed = collapsedCarts.has(cart.id);
+        return `
+        <div class="settings-group cart-card ${isCollapsed ? 'collapsed' : ''}">
             <div class="group-header">
-                <div class="cart-title-info">
-                    <h3 class="cart-name">${cart.name}</h3>
-                    <span class="badge">${cart.items.length} itens</span>
+                <div class="cart-title-info" onclick="toggleCartCollapse('${cart.id}')">
+                    <div class="cart-name-row">
+                        <i class="bi ${isCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'}"></i>
+                        <h3 class="cart-name">${cart.name}</h3>
+                    </div>
+                    <small class="cart-count">${cart.items.length} itens</small>
                 </div>
                 <div class="cart-header-actions">
-                    <button class="btn-edit-item" onclick="openCartModal('${cart.id}')">
+                    <button class="btn-edit-item" onclick="openCartModal('${cart.id}')" title="Editar Carrinho">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn-add-item small" onclick="openCartItemModal(null, '${cart.id}')">
-                        <i class="bi bi-plus-lg"></i> Item
+                    <button class="btn-add-item small" onclick="openCartItemModal(null, '${cart.id}')" title="Adicionar Itens">
+                        <i class="bi bi-plus-lg"></i>
                     </button>
                 </div>
             </div>
@@ -1309,7 +1324,7 @@ function renderCarts() {
                 `).join('')}
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 window.openCartModal = function(cartId = null) {
@@ -1391,7 +1406,7 @@ window.openCartItemModal = function(itemId = null, cartId) {
             }
         }
     } else {
-        title.textContent = "Novo Item";
+        title.textContent = "Novo(s) Item(ns)";
         inputId.value = '';
         inputName.value = '';
         if (btnDeleteCartItem) btnDeleteCartItem.classList.add('hidden');
@@ -1405,7 +1420,7 @@ if (formCartItem) {
         e.preventDefault();
         const id = document.getElementById('cart-item-id').value;
         const cartId = document.getElementById('cart-item-parent-id').value;
-        const name = document.getElementById('cart-item-name').value;
+        const rawName = document.getElementById('cart-item-name').value;
         
         if (!cartId) {
             showToast("Erro: ID do carrinho não encontrado", 'error');
@@ -1413,15 +1428,35 @@ if (formCartItem) {
         }
 
         try {
-            const itemData = { cartId, name };
-            if (id) itemData.id = id;
+            if (id) {
+                // Edição de um único item
+                await cartService.saveItem({ id, cartId, name: rawName.trim() });
+            } else {
+                // Adição múltipla
+                const names = rawName.split('\n')
+                    .map(n => n.trim())
+                    .filter(n => n !== '');
+                
+                if (names.length === 0) {
+                    showToast("Digite pelo menos um item", 'warning');
+                    return;
+                }
 
-            await cartService.saveItem(itemData);
+                // Salvar todos em paralelo (ou sequencial se preferir)
+                // Para manter a ordem de criação correta conforme digitado, vamos fazer sequencial ou usar Promise.all
+                // Como Firestore add é rápido, Promise.all é ok, mas a ordem pode variar levemente.
+                // Mas o getItems do cart-service já ordena por createdAt.
+                
+                for (const name of names) {
+                    await cartService.saveItem({ cartId, name });
+                }
+            }
+
             modalCartItem.classList.remove('active');
-            showToast("Item salvo!", 'success');
+            showToast(id ? "Item salvo!" : "Itens adicionados!", 'success');
             loadCartData();
         } catch (error) {
-            showToast("Erro ao salvar item", 'error');
+            showToast("Erro ao salvar item(ns)", 'error');
         }
     });
 }

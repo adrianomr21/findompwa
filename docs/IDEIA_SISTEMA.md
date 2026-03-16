@@ -13,3 +13,5 @@ O foco principal é
 - Tela de Efetuar Pagamentos: Listar os cartões de crédito para serem pagos, boletos, dívidas fixas… com seus valores e um checkbox “Pago” que registra automáticamente a data de pagamento. Opção de alterar o valor pago, caso houver algum cadastro errado ou faltando. Salvar os dados para cada mês. No topo ter filtro para o mês de pagamento e sempre atualiza no mes atual.
 - importar dados em lote
 - Tela de carrinho de compra, onde posso cadastrar um grupo ou uma compra. Então terá uma lista de compras e grupos com ícones de edição e exclusão.
+
+Na tela de carrinho vamos ajustar algumas coisas: Coloque a quantidade de itens abaixo do nome do carrinho; Coloque icone em vez de "+ Item"; Quero que recolha os carrinhos para deixar a tela mais limpa; Ao adicionar mais itens no carrinho, quero que abra o modal com um campo de texto maior e que posso digitar vários itens quebrados por linha e todos os itens são criadas numa vez só. exemplo: preciso comprar sabão, pão e sabonete. Vou digitar um abaixo do outro, e o sistema irá entender que são vários itens, e criará vários itens separados. Se for vazio ou espaço não deve criar o mesmo.

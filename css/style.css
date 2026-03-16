@@ -556,8 +556,21 @@ input:focus, select:focus { border-color: var(--accent); }
 
 .cart-title-info {
     display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    flex: 1;
+}
+
+.cart-name-row {
+    display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+}
+
+.cart-name-row i {
+    font-size: 0.8rem;
+    color: var(--text-muted);
 }
 
 .cart-name {
@@ -565,6 +578,20 @@ input:focus, select:focus { border-color: var(--accent); }
     font-size: 1.1rem;
     font-weight: 700;
     color: var(--text);
+}
+
+.cart-count {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-left: 20px;
+}
+
+.cart-card.collapsed .cart-items-list {
+    display: none;
+}
+
+.cart-card.collapsed {
+    padding-bottom: 20px;
 }
 
 .cart-header-actions {
@@ -680,8 +707,6 @@ input:focus, select:focus { border-color: var(--accent); }
 .item-actions .btn-icon-only:hover {
     color: var(--accent);
     opacity: 1;
-}
-    width: 100%;
 }
 
 .settings-group {
