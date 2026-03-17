@@ -41,8 +41,20 @@ let currentPaymentsData = [];
 
 const authScreen = document.getElementById('auth-screen');
 const appWrapper = document.getElementById('app-wrapper');
+const initialLoader = document.getElementById('initial-loader');
 const btnLoginGoogle = document.getElementById('btn-login-google');
 const btnLogout = document.getElementById('btn-logout');
+
+function hideInitialLoader() {
+    if (initialLoader) {
+        initialLoader.style.opacity = '0';
+        setTimeout(() => initialLoader.remove(), 500);
+    }
+}
+
+// Alertas de Conexão
+window.addEventListener('online', () => showToast("Conexão restaurada!", 'success'));
+window.addEventListener('offline', () => showToast("Você está offline. Usando dados locais.", 'warning'));
 
 // Elementos da barra de progresso de categoria (Cadastro)
 const catSelectProgress = document.getElementById('reg-category');
@@ -101,6 +113,7 @@ if (formSignup) {
 
 // Gerenciar estado de Autenticação
 auth.onAuthStateChanged(user => {
+    hideInitialLoader();
     if (user) {
         authScreen.classList.remove('active');
         appWrapper.style.display = 'flex';
@@ -114,6 +127,10 @@ auth.onAuthStateChanged(user => {
         settingsService = null;
         cartService = null;
     }
+}, error => {
+    console.error("Erro Auth:", error);
+    hideInitialLoader();
+    showToast("Erro ao verificar autenticação.", 'error');
 });
 
 if (btnLoginGoogle) {
