@@ -1055,6 +1055,11 @@ async function loadPaymentsData() {
                 paid: status.paid || false,
                 ignored: status.ignored || false
             };
+        }).sort((a, b) => {
+            if (a.paid === b.paid) {
+                return new Date(a.dueDate) - new Date(b.dueDate);
+            }
+            return a.paid ? 1 : -1;
         });
 
         renderPayments();
@@ -1146,6 +1151,15 @@ window.togglePaidStatus = async (sourceId) => {
     const pay = currentPaymentsData.find(p => p.sourceId === sourceId);
     if (!pay) return;
     pay.paid = !pay.paid;
+    
+    // Reordenar após a mudança de status
+    currentPaymentsData.sort((a, b) => {
+        if (a.paid === b.paid) {
+            return new Date(a.dueDate) - new Date(b.dueDate);
+        }
+        return a.paid ? 1 : -1;
+    });
+
     await savePaymentStatus(pay);
     renderPayments();
 };
