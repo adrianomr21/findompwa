@@ -889,6 +889,18 @@ function populateSelects() {
         opt.textContent = pay.name;
         paySelect.appendChild(opt);
     });
+
+    // Restaurar último preenchimento salvo no localStorage
+    const lastCat = localStorage.getItem('lastCategoryId');
+    const lastPay = localStorage.getItem('lastPaymentMethodId');
+    
+    if (lastCat) {
+        catSelect.value = lastCat;
+        updateCategoryProgressBar(lastCat);
+    }
+    if (lastPay) {
+        paySelect.value = lastPay;
+    }
 }
 
 function updateCategoryProgressBar(categoryId) {
