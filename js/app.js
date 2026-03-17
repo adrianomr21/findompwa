@@ -691,6 +691,8 @@ function generateSettingsFields(type, data = {}) {
             <div class="field-group span-2"><label>Nome</label><input type="text" id="debt-name" value="${data.name || ''}" required></div>
             <div class="field-group"><label>Valor (R$)</label><input type="number" id="debt-value" step="0.01" value="${data.value || ''}" required></div>
             <div class="field-group"><label>Dia</label><input type="number" id="debt-day" min="1" max="31" value="${data.paymentDay || ''}" required></div>
+            <div class="field-group"><label>Início (Opcional)</label><input type="date" id="debt-start" value="${data.startDate || ''}"></div>
+            <div class="field-group"><label>Fim (Opcional)</label><input type="date" id="debt-end" value="${data.endDate || ''}"></div>
             <div class="field-group span-2"><label>Notas</label><textarea id="debt-notes">${data.notes || ''}</textarea></div>
         `;
     }
@@ -718,6 +720,8 @@ if (formSettings) {
             data.name = document.getElementById('debt-name').value;
             data.value = parseFloat(document.getElementById('debt-value').value);
             data.paymentDay = parseInt(document.getElementById('debt-day').value);
+            data.startDate = document.getElementById('debt-start').value;
+            data.endDate = document.getElementById('debt-end').value;
             data.notes = document.getElementById('debt-notes').value;
         }
         try {
@@ -884,7 +888,20 @@ function getDetailsByType(type, item) {
         }
         return details;
     }
-    if (type === 'fixedDebt') return `Valor: R$ ${item.value.toFixed(2)} - Dia ${item.paymentDay}`;
+    if (type === 'fixedDebt') {
+        let details = `Valor: R$ ${item.value.toFixed(2)} - Dia ${item.paymentDay}`;
+        if (item.startDate || item.endDate) {
+            const start = item.startDate ? new Date(item.startDate + 'T12:00:00').toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '∞';
+            const end = item.endDate ? new Date(item.endDate + 'T12:00:00').toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '∞';
+            details += `<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Vigência: ${start} até ${end}</div>`;
+        }
+        if (item.notes) {
+            details += `<div class="item-notes" style="margin-top: 4px; font-size: 0.85rem; color: #8b949e; font-style: italic;">
+                <i class="bi bi-info-circle"></i> ${item.notes}
+            </div>`;
+        }
+        return details;
+    }
     return '';
 }
 
@@ -1007,6 +1024,16 @@ async function loadPaymentsData() {
         });
 
         currentFixedDebts.forEach(debt => {
+            // Filtrar por data de início e fim
+            if (debt.startDate) {
+                const start = new Date(debt.startDate + 'T12:00:00');
+                if (new Date(payYear, payMonth, 1) < new Date(start.getFullYear(), start.getMonth(), 1)) return;
+            }
+            if (debt.endDate) {
+                const end = new Date(debt.endDate + 'T12:00:00');
+                if (new Date(payYear, payMonth, 1) > new Date(end.getFullYear(), end.getMonth(), 1)) return;
+            }
+
             const sourceId = `fixed_${debt.id}`;
             grouped[sourceId] = {
                 sourceId: sourceId,
@@ -1060,6 +1087,7 @@ function renderPayments() {
                         <span class="status-badge ${statusClass}">${statusText}</span>
                     </div>
                     <div class="payment-due">Vence em ${formattedDate}</div>
+                    ${pay.notes ? `<div class="payment-notes-inline"><i class="bi bi-info-circle"></i> ${pay.notes}</div>` : ''}
                 </div>
                 
                 <div class="payment-value-container">
