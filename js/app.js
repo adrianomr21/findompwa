@@ -1289,8 +1289,15 @@ function renderCarts() {
 
     list.innerHTML = currentCarts.map(cart => {
         const isCollapsed = collapsedCarts.has(cart.id);
+        
+        // Ordenação: Itens não marcados no topo
+        const sortedItems = [...cart.items].sort((a, b) => {
+            if (a.bought === b.bought) return 0;
+            return a.bought ? 1 : -1;
+        });
+
         return `
-        <div class="settings-group cart-card ${isCollapsed ? 'collapsed' : ''}">
+        <div class="cart-card ${isCollapsed ? 'collapsed' : ''}">
             <div class="group-header">
                 <div class="cart-title-info" onclick="toggleCartCollapse('${cart.id}')">
                     <div class="cart-name-row">
@@ -1309,8 +1316,8 @@ function renderCarts() {
                 </div>
             </div>
             <div class="cart-items-list">
-                ${cart.items.length === 0 ? '<div class="list-empty">Vazio</div>' : 
-                    cart.items.map(item => `
+                ${sortedItems.length === 0 ? '<div class="list-empty">Vazio</div>' : 
+                    sortedItems.map(item => `
                     <div class="cart-item-row ${item.bought ? 'bought' : ''}">
                         <label class="cart-item-check">
                             <input type="checkbox" ${item.bought ? 'checked' : ''} onchange="toggleCartItemStatus('${item.id}', this.checked)">

@@ -542,21 +542,16 @@ input:focus, select:focus { border-color: var(--accent); }
 
 /* Carrinho */
 .cart-card {
-    background: none;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    border-radius: 0;
-    padding: 16px 0;
-    margin-bottom: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
     transition: 0.3s;
 }
 
-.cart-card:last-of-type {
-    border-bottom: none;
-}
-
 .cart-card:hover {
-    border-color: var(--accent);
+    border-color: var(--text-muted);
 }
 
 .cart-title-info {
@@ -711,13 +706,6 @@ input:focus, select:focus { border-color: var(--accent); }
 .item-actions .btn-icon-only:hover {
     color: var(--accent);
     opacity: 1;
-}
-
-.settings-group {
-    background: none;
-    border: none;
-    padding: 0;
-    margin-bottom: 30px;
 }
 
 .group-header {
