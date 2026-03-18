@@ -6,15 +6,27 @@ export function formatCurrency(value) {
 /**
  * Máscara de moeda para campos de input.
  * Transforma '1' em '0,01', '123' em '1,23' etc.
- * @param {string} value Valor bruto digitado
+ * @param {string|number} value Valor bruto ou numérico
  * @returns {string} Valor formatado
  */
 export function maskCurrency(value) {
+    if (value === undefined || value === null) value = '0';
+    
+    let v = value.toString();
+    
+    // Se for um número (float), converte para o formato de centavos (ex: 12.5 -> 1250)
+    if (typeof value === 'number') {
+        v = Math.round(value * 100).toString();
+    }
+
     // Remove tudo que não for dígito
-    let v = value.replace(/\D/g, '');
+    v = v.replace(/\D/g, '');
+    
+    // Trata caso de string vazia após a limpeza
+    if (v === '') v = '0';
     
     // Converte para centavos
-    v = (v / 100).toFixed(2) + '';
+    v = (parseInt(v) / 100).toFixed(2) + '';
     
     // Troca ponto por vírgula
     v = v.replace('.', ',');

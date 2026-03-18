@@ -89,23 +89,37 @@ document.querySelectorAll('.toggle-password').forEach(btn => {
 
 // Aplicação de máscara de moeda nos inputs
 function applyCurrencyMask(e) {
-    e.target.value = maskCurrency(e.target.value);
+    const input = e.target;
+    const originalValue = input.value;
+    const maskedValue = maskCurrency(originalValue);
+    
+    // Só atualiza se o valor formatado for diferente para evitar loops e problemas de cursor
+    if (originalValue !== maskedValue) {
+        input.value = maskedValue;
+        
+        // Disparar evento de input manualmente para garantir que outros ouvintes (como barra de progresso) vejam a mudança
+        // Usamos CustomEvent com isMasked para que a própria delegação saiba que não deve re-aplicar a máscara
+        input.dispatchEvent(new CustomEvent('input', { 
+            bubbles: true, 
+            detail: { isMasked: true } 
+        }));
+    }
 }
 
-const currencyInputs = [
+// Lista de IDs que usam máscara de moeda (estáticos e dinâmicos)
+const currencyInputIds = [
     'reg-value', 
     'edit-reg-value', 
-    'edit-pay-actual-value'
+    'edit-pay-actual-value',
+    'cat-limit',
+    'debt-value'
 ];
 
-currencyInputs.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('input', applyCurrencyMask);
-});
-
-// Delegação para campos dinâmicos (Ajustes)
+// Delegação centralizada para máscaras de moeda
 document.addEventListener('input', (e) => {
-    if (e.target.id === 'cat-limit' || e.target.id === 'debt-value') {
+    if (currencyInputIds.includes(e.target.id)) {
+        // Evitar recursão infinita se o evento foi disparado pelo próprio applyCurrencyMask
+        if (e.detail && e.detail.isMasked) return;
         applyCurrencyMask(e);
     }
 });
@@ -684,7 +698,7 @@ function generateSettingsFields(type, data = {}) {
     if (type === 'category') {
         container.innerHTML = `
             <div class="field-group span-2"><label>Nome</label><input type="text" id="cat-name" value="${data.name || ''}" required></div>
-            <div class="field-group span-2"><label>Limite (R$)</label><input type="text" inputmode="numeric" id="cat-limit" value="${data.limit ? maskCurrency(data.limit.toString()) : '0,00'}" required></div>
+            <div class="field-group span-2"><label>Limite (R$)</label><input type="text" inputmode="numeric" id="cat-limit" autocomplete="off" value="${data.limit ? maskCurrency(data.limit) : '0,00'}" required></div>
         `;
     } else if (type === 'paymentMethod') {
         container.innerHTML = `
@@ -712,7 +726,7 @@ function generateSettingsFields(type, data = {}) {
     } else if (type === 'fixedDebt') {
         container.innerHTML = `
             <div class="field-group span-2"><label>Nome</label><input type="text" id="debt-name" value="${data.name || ''}" required></div>
-            <div class="field-group"><label>Valor (R$)</label><input type="text" inputmode="numeric" id="debt-value" value="${data.value ? maskCurrency(data.value.toString()) : '0,00'}" required></div>
+            <div class="field-group"><label>Valor (R$)</label><input type="text" inputmode="numeric" id="debt-value" autocomplete="off" value="${data.value ? maskCurrency(data.value) : '0,00'}" required></div>
             <div class="field-group"><label>Dia</label><input type="number" id="debt-day" min="1" max="31" value="${data.paymentDay || ''}" required></div>
             <div class="field-group"><label>Início (Opcional)</label><input type="date" id="debt-start" value="${data.startDate || ''}"></div>
             <div class="field-group"><label>Fim (Opcional)</label><input type="date" id="debt-end" value="${data.endDate || ''}"></div>
