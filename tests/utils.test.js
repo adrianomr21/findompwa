@@ -1,8 +1,54 @@
 import { describe, it, expect } from 'vitest';
-import { calculateTotal, calculateInstallments, getInstallmentStatus, calculateCategorySpending } from '../js/utils.js';
+import { calculateTotal, calculateInstallments, getInstallmentStatus, calculateCategorySpending, maskCurrency, parseCurrency } from '../js/utils.js';
 
 describe('Fin - Utility Functions', () => {
     
+    describe('maskCurrency', () => {
+        it('deve formatar 1 centavo corretamente', () => {
+            expect(maskCurrency('1')).toBe('0,01');
+        });
+
+        it('deve formatar 10 centavos corretamente', () => {
+            expect(maskCurrency('10')).toBe('0,10');
+        });
+
+        it('deve formatar 1 real corretamente', () => {
+            expect(maskCurrency('100')).toBe('1,00');
+        });
+
+        it('deve formatar mil reais com separador de milhar', () => {
+            expect(maskCurrency('100000')).toBe('1.000,00');
+        });
+
+        it('deve ignorar caracteres não numéricos', () => {
+            expect(maskCurrency('R$ 1.234,56')).toBe('1.234,56');
+        });
+        
+        it('deve lidar com strings vazias', () => {
+            expect(maskCurrency('')).toBe('0,00');
+        });
+    });
+
+    describe('parseCurrency', () => {
+        it('deve converter "1,00" para 1.0', () => {
+            expect(parseCurrency('1,00')).toBe(1.0);
+        });
+
+        it('deve converter "1.234,56" para 1234.56', () => {
+            expect(parseCurrency('1.234,56')).toBe(1234.56);
+        });
+
+        it('deve retornar 0 para valores inválidos', () => {
+            expect(parseCurrency('')).toBe(0);
+            expect(parseCurrency(null)).toBe(0);
+            expect(parseCurrency(undefined)).toBe(0);
+        });
+
+        it('deve retornar o próprio valor se já for número', () => {
+            expect(parseCurrency(150.50)).toBe(150.50);
+        });
+    });
+
     it('deve calcular o total de um array de despesas corretamente', () => {
         const expenses = [
             { value: 100 },
