@@ -3,6 +3,40 @@ export function formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
+/**
+ * Máscara de moeda para campos de input.
+ * Transforma '1' em '0,01', '123' em '1,23' etc.
+ * @param {string} value Valor bruto digitado
+ * @returns {string} Valor formatado
+ */
+export function maskCurrency(value) {
+    // Remove tudo que não for dígito
+    let v = value.replace(/\D/g, '');
+    
+    // Converte para centavos
+    v = (v / 100).toFixed(2) + '';
+    
+    // Troca ponto por vírgula
+    v = v.replace('.', ',');
+    
+    // Adiciona separador de milhar
+    v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
+    v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
+    
+    return v;
+}
+
+/**
+ * Converte uma string de moeda formatada (ex: "1.234,56") para float.
+ * @param {string|number} value Valor formatado ou já numérico
+ * @returns {number} Valor em float
+ */
+export function parseCurrency(value) {
+    if (typeof value === 'number') return value;
+    if (!value) return 0;
+    return parseFloat(value.replace(/\./g, '').replace(',', '.')) || 0;
+}
+
 export function calculateTotal(expenses) {
     return expenses.reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
 }

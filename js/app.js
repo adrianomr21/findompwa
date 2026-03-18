@@ -3,7 +3,7 @@ import { AuthService } from './auth-service.js';
 import { ImportService } from './import-service.js';
 import { SettingsService } from './settings-service.js';
 import { CartService } from './cart-service.js';
-import { formatCurrency, getInstallmentStatus, calculateDueDate, showToast, calculatePayTotal, calculateDueDateForMonth, calculateCategorySpending } from './utils.js';
+import { formatCurrency, getInstallmentStatus, calculateDueDate, showToast, calculatePayTotal, calculateDueDateForMonth, calculateCategorySpending, maskCurrency, parseCurrency } from './utils.js';
 
 // Inicializar Firebase
 if (!firebase.apps.length) {
@@ -85,6 +85,29 @@ document.querySelectorAll('.toggle-password').forEach(btn => {
             btn.classList.replace('bi-eye-slash', 'bi-eye');
         }
     });
+});
+
+// Aplicação de máscara de moeda nos inputs
+function applyCurrencyMask(e) {
+    e.target.value = maskCurrency(e.target.value);
+}
+
+const currencyInputs = [
+    'reg-value', 
+    'edit-reg-value', 
+    'edit-pay-actual-value'
+];
+
+currencyInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', applyCurrencyMask);
+});
+
+// Delegação para campos dinâmicos (Ajustes)
+document.addEventListener('input', (e) => {
+    if (e.target.id === 'cat-limit' || e.target.id === 'debt-value') {
+        applyCurrencyMask(e);
+    }
 });
 
 // Login com Email/Senha
@@ -424,7 +447,7 @@ window.openEditExpenseModal = function(id) {
     if (!exp) return;
 
     document.getElementById('edit-expense-id').value = id;
-    document.getElementById('edit-reg-value').value = exp.value;
+    document.getElementById('edit-reg-value').value = maskCurrency(exp.value.toString());
     document.getElementById('edit-reg-name').value = exp.description;
     document.getElementById('edit-reg-notes').value = exp.notes || '';
     document.getElementById('edit-reg-date').value = exp.date.split('T')[0];
@@ -478,7 +501,7 @@ if (formEditExpense) {
         const purchaseDate = new Date(document.getElementById('edit-reg-date').value + 'T12:00:00').toISOString();
 
         const data = {
-            value: parseFloat(document.getElementById('edit-reg-value').value),
+            value: parseCurrency(document.getElementById('edit-reg-value').value),
             description: document.getElementById('edit-reg-name').value,
             notes: document.getElementById('edit-reg-notes').value,
             date: purchaseDate,
@@ -549,7 +572,7 @@ if (formRegister) {
         const purchaseDate = now.toISOString();
 
         const data = {
-            value: parseFloat(document.getElementById('reg-value').value),
+            value: parseCurrency(document.getElementById('reg-value').value),
             type: document.querySelector('input[name="reg-type"]:checked').value,
             paymentMethodId: paymentMethodId,
             description: document.getElementById('reg-name').value,
@@ -661,7 +684,7 @@ function generateSettingsFields(type, data = {}) {
     if (type === 'category') {
         container.innerHTML = `
             <div class="field-group span-2"><label>Nome</label><input type="text" id="cat-name" value="${data.name || ''}" required></div>
-            <div class="field-group span-2"><label>Limite (R$)</label><input type="number" id="cat-limit" step="0.01" value="${data.limit || ''}" required></div>
+            <div class="field-group span-2"><label>Limite (R$)</label><input type="text" inputmode="numeric" id="cat-limit" value="${data.limit ? maskCurrency(data.limit.toString()) : '0,00'}" required></div>
         `;
     } else if (type === 'paymentMethod') {
         container.innerHTML = `
@@ -689,7 +712,7 @@ function generateSettingsFields(type, data = {}) {
     } else if (type === 'fixedDebt') {
         container.innerHTML = `
             <div class="field-group span-2"><label>Nome</label><input type="text" id="debt-name" value="${data.name || ''}" required></div>
-            <div class="field-group"><label>Valor (R$)</label><input type="number" id="debt-value" step="0.01" value="${data.value || ''}" required></div>
+            <div class="field-group"><label>Valor (R$)</label><input type="text" inputmode="numeric" id="debt-value" value="${data.value ? maskCurrency(data.value.toString()) : '0,00'}" required></div>
             <div class="field-group"><label>Dia</label><input type="number" id="debt-day" min="1" max="31" value="${data.paymentDay || ''}" required></div>
             <div class="field-group"><label>Início (Opcional)</label><input type="date" id="debt-start" value="${data.startDate || ''}"></div>
             <div class="field-group"><label>Fim (Opcional)</label><input type="date" id="debt-end" value="${data.endDate || ''}"></div>
@@ -706,7 +729,7 @@ if (formSettings) {
         let data = {};
         if (type === 'category') {
             data.name = document.getElementById('cat-name').value;
-            data.limit = parseFloat(document.getElementById('cat-limit').value);
+            data.limit = parseCurrency(document.getElementById('cat-limit').value);
         } else if (type === 'paymentMethod') {
             data.name = document.getElementById('pay-name').value;
             data.type = document.getElementById('pay-type').value;
@@ -718,7 +741,7 @@ if (formSettings) {
             } else if (data.type === 'boleto') data.dueDay = parseInt(document.getElementById('pay-due').value);
         } else if (type === 'fixedDebt') {
             data.name = document.getElementById('debt-name').value;
-            data.value = parseFloat(document.getElementById('debt-value').value);
+            data.value = parseCurrency(document.getElementById('debt-value').value);
             data.paymentDay = parseInt(document.getElementById('debt-day').value);
             data.startDate = document.getElementById('debt-start').value;
             data.endDate = document.getElementById('debt-end').value;
@@ -1216,7 +1239,7 @@ window.openEditPaymentValue = (sourceId) => {
 
     if (modal && label && inputVal && inputSource) {
         label.textContent = `Informe o valor real pago para ${pay.name}:`;
-        inputVal.value = pay.actualValue;
+        inputVal.value = maskCurrency(pay.actualValue.toString());
         inputSource.value = sourceId;
         modal.classList.add('active');
     }
@@ -1227,7 +1250,7 @@ if (formEditPayValue) {
     formEditPayValue.addEventListener('submit', async (e) => {
         e.preventDefault();
         const sourceId = document.getElementById('edit-pay-source-id').value;
-        const newValue = parseFloat(document.getElementById('edit-pay-actual-value').value);
+        const newValue = parseCurrency(document.getElementById('edit-pay-actual-value').value);
         
         const pay = currentPaymentsData.find(p => p.sourceId === sourceId);
         if (pay && !isNaN(newValue)) {
