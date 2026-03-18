@@ -1559,32 +1559,45 @@ if (formCartItem) {
                     return;
                 }
 
-                // Buscar itens existentes para evitar duplicados
+                // Buscar itens existentes para verificar duplicados e status
                 const existingItems = await cartService.getItems(cartId);
-                const existingNames = new Set(existingItems.map(item => item.name.toLowerCase().trim()));
+                // Mapear nome normalizado para o objeto do item
+                const existingMap = new Map();
+                existingItems.forEach(item => {
+                    existingMap.set(item.name.toLowerCase().trim(), item);
+                });
 
-                // Filtrar nomes para remover os que já existem no banco E duplicatas na própria lista
-                const namesToProcess = [];
                 const processedInThisBatch = new Set();
+                let addedCount = 0;
+                let unmarkedCount = 0;
 
                 for (const name of names) {
                     const normalized = name.toLowerCase().trim();
-                    if (!existingNames.has(normalized) && !processedInThisBatch.has(normalized)) {
-                        namesToProcess.push(name);
-                        processedInThisBatch.add(normalized);
+                    if (processedInThisBatch.has(normalized)) continue;
+                    processedInThisBatch.add(normalized);
+
+                    if (existingMap.has(normalized)) {
+                        const item = existingMap.get(normalized);
+                        // Se o item já existe e está marcado (comprado), desmarca ele
+                        if (item.bought) {
+                            await cartService.toggleItemBought(item.id, false);
+                            unmarkedCount++;
+                        }
+                        // Se já existe e está desmarcado, não faz nada (ignora)
+                    } else {
+                        // Se não existe, cria novo
+                        await cartService.saveItem({ cartId, name });
+                        addedCount++;
                     }
                 }
 
-                // Se todos os itens já existirem, apenas fecha o modal sem notificar
-                if (namesToProcess.length === 0) {
-                    modalCartItem.classList.remove('active');
-                    loadCartData();
-                    return;
-                }
-
-                // Salvar novos itens
-                for (const name of namesToProcess) {
-                    await cartService.saveItem({ cartId, name });
+                // Feedback para o usuário
+                if (addedCount > 0 && unmarkedCount > 0) {
+                    showToast(`${addedCount} novos e ${unmarkedCount} desmarcados`, 'success');
+                } else if (addedCount > 0) {
+                    showToast(`${addedCount} itens adicionados`, 'success');
+                } else if (unmarkedCount > 0) {
+                    showToast(`${unmarkedCount} itens desmarcados`, 'success');
                 }
             }
 
