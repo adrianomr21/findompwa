@@ -461,7 +461,7 @@ window.openEditExpenseModal = function(id) {
     if (!exp) return;
 
     document.getElementById('edit-expense-id').value = id;
-    document.getElementById('edit-reg-value').value = maskCurrency(exp.value.toString());
+    document.getElementById('edit-reg-value').value = maskCurrency(exp.value);
     document.getElementById('edit-reg-name').value = exp.description;
     document.getElementById('edit-reg-notes').value = exp.notes || '';
     document.getElementById('edit-reg-date').value = exp.date.split('T')[0];
@@ -1253,7 +1253,7 @@ window.openEditPaymentValue = (sourceId) => {
 
     if (modal && label && inputVal && inputSource) {
         label.textContent = `Informe o valor real pago para ${pay.name}:`;
-        inputVal.value = maskCurrency(pay.actualValue.toString());
+        inputVal.value = maskCurrency(pay.actualValue);
         inputSource.value = sourceId;
         modal.classList.add('active');
     }
