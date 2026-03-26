@@ -92,18 +92,18 @@
         </nav>
 
         <main id="app-content">
+            <!-- Banner de Total Global (Unificado para Cadastro e Dashboard) -->
+            <div id="unified-banner" class="global-total-banner">
+                <div class="banner-header">
+                    <button id="btn-banner-prev" class="btn-banner-nav"><i class="bi bi-chevron-left"></i></button>
+                    <small id="banner-month-name">GASTO TOTAL DO MÊS</small>
+                    <button id="btn-banner-next" class="btn-banner-nav"><i class="bi bi-chevron-right"></i></button>
+                </div>
+                <h2 id="main-total-spent">R$ 0,00</h2>
+            </div>
+
             <!-- Tela de Cadastro -->
             <section id="screen-register" class="screen active">
-                <!-- Banner de Total com Navegação -->
-                <div class="global-total-banner">
-                    <div class="banner-header">
-                        <button id="btn-banner-prev" class="btn-banner-nav"><i class="bi bi-chevron-left"></i></button>
-                        <small id="banner-month-name">GASTO TOTAL DO MÊS</small>
-                        <button id="btn-banner-next" class="btn-banner-nav"><i class="bi bi-chevron-right"></i></button>
-                    </div>
-                    <h2 id="main-total-spent">R$ 0,00</h2>
-                </div>
-
                 <div class="layout-grid">
                     <div class="form-container">
                         <header class="section-header">
@@ -197,30 +197,9 @@
             <!-- Telas de Dashboard, Pagamentos e Configurações (Estrutura similar) -->
             <section id="screen-dashboard" class="screen">
                 <div class="dashboard-container">
-                    <header class="section-header">
-                        <h1>Painel de Controle</h1>
-                        <p>Visão geral dos seus gastos</p>
-                    </header>
-
+                    
                     <!-- Filtros do Dashboard -->
                     <div class="dashboard-filters">
-                    <div class="filter-group">
-                        <label>Mês</label>
-                        <select id="dash-filter-month">
-                            <option value="0">Janeiro</option>
-                            <option value="1">Fevereiro</option>
-                            <option value="2">Março</option>
-                            <option value="3">Abril</option>
-                            <option value="4">Maio</option>
-                            <option value="5">Junho</option>
-                            <option value="6">Julho</option>
-                            <option value="7">Agosto</option>
-                            <option value="8">Setembro</option>
-                            <option value="9">Outubro</option>
-                            <option value="10">Novembro</option>
-                            <option value="11">Dezembro</option>
-                        </select>
-                    </div>
                     <div class="filter-group">
                         <label>Ano</label>
                         <select id="dash-filter-year"></select>
@@ -236,14 +215,6 @@
                         <select id="dash-filter-payment">
                             <option value="all">Todos</option>
                         </select>
-                    </div>
-                </div>
-
-                <!-- Resumo Geral -->
-                <div class="dashboard-summary">
-                    <div class="summary-card">
-                        <small>Total no Período</small>
-                        <h2 id="dash-total-value">R$ 0,00</h2>
                     </div>
                 </div>
 

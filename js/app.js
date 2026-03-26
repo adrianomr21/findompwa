@@ -196,6 +196,16 @@ function showScreen(screenId) {
     navButtons.forEach(btn => {
         btn.classList.toggle('active', btn.dataset.screen === screenId);
     });
+
+    // Exibir banner global apenas no Dashboard e no Cadastro
+    const banner = document.getElementById('unified-banner');
+    if (banner) {
+        if (screenId === 'dashboard' || screenId === 'register') {
+            banner.style.display = 'block';
+        } else {
+            banner.style.display = 'none';
+        }
+    }
     
     if (screenId === 'dashboard' || screenId === 'register') {
         loadDashboardData();
@@ -219,7 +229,6 @@ navButtons.forEach(btn => {
 // Elementos do Dashboard
 function getDashFilters() {
     return {
-        month: document.getElementById('dash-filter-month'),
         year: document.getElementById('dash-filter-year'),
         category: document.getElementById('dash-filter-category'),
         payment: document.getElementById('dash-filter-payment')
@@ -227,17 +236,16 @@ function getDashFilters() {
 }
 
 function setupYearFilter() {
-    const { year: yearSelect, month: monthSelect } = getDashFilters();
+    const { year: yearSelect } = getDashFilters();
     if (!yearSelect) return;
 
     yearSelect.innerHTML = '';
     const now = new Date();
     
-    let nextMonth = now.getMonth() + 1;
     let nextYear = now.getFullYear();
     
-    if (nextMonth > 11) {
-        nextMonth = 0;
+    // Se estivermos em Dezembro, permitir ver o próximo ano
+    if (now.getMonth() === 11) {
         nextYear++;
     }
 
@@ -249,26 +257,34 @@ function setupYearFilter() {
         yearSelect.appendChild(opt);
     }
     
-    if (monthSelect) monthSelect.value = nextMonth;
-    if (yearSelect) yearSelect.value = nextYear;
+    // Sincronizar com bannerYear
+    yearSelect.value = bannerYear;
 
     setupFilterListeners();
 }
 
 function setupFilterListeners() {
-    const { month, year, category, payment } = getDashFilters();
+    const { year, category, payment } = getDashFilters();
     const searchInput = document.getElementById('dash-search-history');
 
-    [month, year, category, payment].forEach(el => {
+    [year, category, payment].forEach(el => {
         if (el) {
-            el.removeEventListener('change', renderDashboard);
-            el.addEventListener('change', renderDashboard);
+            el.removeEventListener('change', onDashFilterChange);
+            el.addEventListener('change', onDashFilterChange);
         }
     });
 
     if (searchInput) {
         searchInput.addEventListener('input', renderDashboard);
     }
+}
+
+function onDashFilterChange(e) {
+    if (e.target.id === 'dash-filter-year') {
+        bannerYear = parseInt(e.target.value);
+        updateTotalDisplay();
+    }
+    renderDashboard();
 }
 
 async function loadDashboardData() {
@@ -291,13 +307,19 @@ async function loadDashboardData() {
 }
 
 function renderDashboard() {
-    const { month: monthSelect, year: yearSelect, category: categorySelect, payment: paymentSelect } = getDashFilters();
+    const { year: yearSelect, category: categorySelect, payment: paymentSelect } = getDashFilters();
     const searchInput = document.getElementById('dash-search-history');
     
-    if (!monthSelect || !yearSelect) return;
+    if (!yearSelect) return;
 
-    const filterMonth = parseInt(monthSelect.value);
-    const filterYear = parseInt(yearSelect.value);
+    const filterMonth = bannerMonth;
+    const filterYear = bannerYear;
+    
+    // Sincronizar select de ano com bannerYear caso tenha mudado via banner
+    if (yearSelect.value != bannerYear) {
+        yearSelect.value = bannerYear;
+    }
+
     const categoryFilter = categorySelect ? categorySelect.value : 'all';
     const paymentFilter = paymentSelect ? paymentSelect.value : 'all';
     const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
@@ -567,6 +589,57 @@ regTypeRadios.forEach(radio => {
         }
     });
 });
+
+// Evento para trocar o mês do topo conforme a forma de pagamento (Cartão de Crédito com Virada)
+const regPaymentSelect = document.getElementById('reg-payment-method');
+
+function updateBannerByPaymentMethod(paymentMethodId) {
+    if (!paymentMethodId) return;
+
+    const payMethod = currentPaymentMethods.find(p => p.id === paymentMethodId);
+    if (payMethod && payMethod.type === 'credito' && payMethod.endDay) {
+        const now = new Date();
+        const dueDateStr = calculateDueDate(now, payMethod);
+        const dueDate = new Date(dueDateStr);
+        
+        const dueMonth = dueDate.getMonth();
+        const dueYear = dueDate.getFullYear();
+
+        // Atualizar Filtros do Dashboard
+        const { year: yearSelect } = getDashFilters();
+        
+        // Verificar se o ano existe no select de ano, se não, adicionar
+        if (yearSelect) {
+            let yearExists = false;
+            for (let i = 0; i < yearSelect.options.length; i++) {
+                if (parseInt(yearSelect.options[i].value) === dueYear) {
+                    yearExists = true;
+                    break;
+                }
+            }
+            if (!yearExists) {
+                const opt = document.createElement('option');
+                opt.value = dueYear;
+                opt.textContent = dueYear;
+                yearSelect.appendChild(opt);
+            }
+            yearSelect.value = dueYear;
+        }
+
+        // Atualizar variáveis do Banner
+        bannerMonth = dueMonth;
+        bannerYear = dueYear;
+
+        // Renderizar atualizações (updateTotalDisplay já chama renderDashboard)
+        updateTotalDisplay();
+    }
+}
+
+if (regPaymentSelect) {
+    regPaymentSelect.addEventListener('change', (e) => {
+        updateBannerByPaymentMethod(e.target.value);
+    });
+}
 
 if (formRegister) {
     formRegister.addEventListener('submit', async (e) => {
@@ -971,6 +1044,7 @@ function populateSelects() {
     }
     if (lastPay) {
         paySelect.value = lastPay;
+        updateBannerByPaymentMethod(lastPay);
     }
 }
 
@@ -1341,6 +1415,9 @@ function updateTotalDisplay() {
 
     // Refresh settings lists to show category spending there too
     renderSettingsLists();
+
+    // Atualizar dashboard para refletir novo mês/ano selecionado no banner
+    renderDashboard();
 }
 
 // --- LÓGICA DE CARRINHO ---
