@@ -1244,6 +1244,10 @@ input:focus, select:focus { border-color: var(--accent); }
         width: 100%;
     }
 
+    .dashboard-filters .filter-group:nth-child(3) {
+        grid-column: span 2;
+    }
+
     .history-item {
         padding: 12px;
     }
