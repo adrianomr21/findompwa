@@ -1726,6 +1726,56 @@ window.toggleCartItemStatus = async function(itemId, bought) {
     }
 };
 
+// Registro do Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('SW registrado!', reg.scope))
+            .catch(err => console.error('SW falhou!', err));
+    });
+}
+
+// Lógica de Instalação PWA
+let deferredPrompt;
+const pwaInstallContainer = document.getElementById('pwa-install-container');
+const btnPwaInstall = document.getElementById('btn-pwa-install');
+
+// Verificar se já está instalado (standalone)
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('Evento beforeinstallprompt disparado!');
+    // Impedir que o mini-infobar apareça em dispositivos móveis
+    e.preventDefault();
+    // Guardar o evento para que possa ser disparado mais tarde
+    deferredPrompt = e;
+    // Mostrar o botão de instalação apenas se NÃO estiver em modo standalone
+    if (pwaInstallContainer && !isStandalone) {
+        pwaInstallContainer.classList.remove('hidden');
+    }
+});
+
+if (btnPwaInstall) {
+    btnPwaInstall.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        // Mostrar o prompt de instalação
+        deferredPrompt.prompt();
+        // Esperar pela resposta do usuário
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`Usuário escolheu: ${outcome}`);
+        // Limpar o prompt
+        deferredPrompt = null;
+        // Esconder o botão
+        if (pwaInstallContainer) pwaInstallContainer.classList.add('hidden');
+    });
+}
+
+window.addEventListener('appinstalled', (event) => {
+    console.log('PWA instalado com sucesso!');
+    if (pwaInstallContainer) pwaInstallContainer.classList.add('hidden');
+    deferredPrompt = null;
+});
+
 // Start
 document.addEventListener('DOMContentLoaded', () => {
     setupYearFilter();
