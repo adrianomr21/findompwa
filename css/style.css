@@ -367,6 +367,29 @@ input:focus, select:focus { border-color: var(--accent); }
     background: rgba(0, 184, 148, 0.05);
 }
 
+.btn-install-pwa {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    font-weight: 700;
+    width: 100%;
+    cursor: pointer;
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: var(--shadow);
+    animation: slideDown 0.4s ease;
+}
+
+.btn-install-pwa:hover {
+    filter: brightness(1.1);
+}
+
 /* Modal Styles */
 .modal {
     display: none;

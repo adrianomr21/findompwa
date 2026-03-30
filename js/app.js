@@ -1726,6 +1726,41 @@ window.toggleCartItemStatus = async function(itemId, bought) {
     }
 };
 
+// Lógica de Instalação PWA
+let deferredPrompt;
+const pwaInstallContainer = document.getElementById('pwa-install-container');
+const btnPwaInstall = document.getElementById('btn-pwa-install');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Impedir que o mini-infobar apareça em dispositivos móveis
+    e.preventDefault();
+    // Guardar o evento para que possa ser disparado mais tarde
+    deferredPrompt = e;
+    // Mostrar o botão de instalação
+    if (pwaInstallContainer) pwaInstallContainer.classList.remove('hidden');
+});
+
+if (btnPwaInstall) {
+    btnPwaInstall.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        // Mostrar o prompt de instalação
+        deferredPrompt.prompt();
+        // Esperar pela resposta do usuário
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`Usuário escolheu: ${outcome}`);
+        // Limpar o prompt
+        deferredPrompt = null;
+        // Esconder o botão
+        if (pwaInstallContainer) pwaInstallContainer.classList.add('hidden');
+    });
+}
+
+window.addEventListener('appinstalled', (event) => {
+    console.log('PWA instalado com sucesso!');
+    if (pwaInstallContainer) pwaInstallContainer.classList.add('hidden');
+    deferredPrompt = null;
+});
+
 // Start
 document.addEventListener('DOMContentLoaded', () => {
     setupYearFilter();
