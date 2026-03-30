@@ -19,7 +19,13 @@
 }
 
 html {
-    font-size: 10px; /* Reduzido de 14px conforme solicitado */
+    font-size: 15px; /* Tamanho confortável para desktop */
+}
+
+@media (max-width: 900px) {
+    html {
+        font-size: 12px; /* Interface mais compacta no mobile */
+    }
 }
 
 body {
