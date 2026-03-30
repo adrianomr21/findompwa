@@ -299,7 +299,6 @@ async function loadDashboardData() {
             .map(doc => ({ id: doc.id, ...doc.data() }))
             .sort((a, b) => new Date(b.date) - new Date(a.date));
             
-        renderDashboard();
         updateTotalDisplay();
     } catch (error) {
         console.error("Erro ao carregar dashboard:", error);
@@ -369,8 +368,15 @@ function renderDashboard() {
     });
 
     const total = filtered.reduce((acc, curr) => acc + curr.value, 0);
-    const dashTotalDisplay = document.getElementById('dash-total-value');
-    if (dashTotalDisplay) dashTotalDisplay.textContent = formatCurrency(total);
+    
+    // Atualizar o total no topo apenas se estivermos na tela de dashboard
+    const mainTotal = document.getElementById('main-total-spent');
+    const screenDash = document.getElementById('screen-dashboard');
+    const isDashboardActive = screenDash && screenDash.classList.contains('active');
+
+    if (isDashboardActive && mainTotal) {
+        mainTotal.textContent = formatCurrency(total);
+    }
     
     const historyCount = document.getElementById('history-count');
     if (historyCount) historyCount.textContent = `${filtered.length} itens`;
