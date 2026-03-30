@@ -5,10 +5,10 @@
     --text: #e6edf3;
     --text-muted: #8b949e;
     --border: #30363d;
-    --radius: 10px; /* Reduzido de 12px */
-    --shadow: 0 4px 10px rgba(0,0,0,0.3);
-    --nav-width: 210px; /* Reduzido de 240px */
-    --nav-height-mobile: 60px; /* Reduzido de 70px */
+    --radius: 8px; /* Reduzido de 10px */
+    --shadow: 0 2px 8px rgba(0,0,0,0.3);
+    --nav-width: 180px; /* Reduzido de 210px */
+    --nav-height-mobile: 50px; /* Reduzido de 60px */
 }
 
 * {
@@ -19,7 +19,7 @@
 }
 
 html {
-    font-size: 14px; /* Reduzido de 16px (padrão) */
+    font-size: 10px; /* Reduzido de 14px conforme solicitado */
 }
 
 body {
