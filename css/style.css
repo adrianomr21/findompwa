@@ -24,7 +24,7 @@ html {
 
 @media (max-width: 900px) {
     html {
-        font-size: 12px; /* Interface mais compacta no mobile */
+        font-size: 14px; /* Interface mais confortável no mobile */
     }
 }
 
