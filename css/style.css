@@ -174,7 +174,23 @@ body {
     line-height: 1;
 }
 
-.screen { display: none; width: 98%; max-width: 600px; }
+.screen { display: none; width: 100%; max-width: 600px; }
+
+@media (max-width: 900px) {
+    .global-total-banner {
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+
+    .global-total-banner h2 {
+        font-size: 2.2rem;
+    }
+
+    .dashboard-filters .filter-group {
+        min-width: 0; /* Remove min-width to prevent overflow in small grids */
+    }
+}
+
 .screen.active { display: block; animation: fadeIn 0.4s ease; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
