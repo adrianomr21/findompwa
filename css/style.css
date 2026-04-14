@@ -1371,6 +1371,10 @@ input:focus, select:focus { border-color: var(--accent); }
 }
 
 @media (max-width: 600px) {
+
+    .badge-count {
+        right: 50%;
+    }
     .toast-container {
         top: auto;
         bottom: 90px;
