@@ -540,41 +540,6 @@
         </div>
     </div>
 
-    <!-- Modal para Editar Compra Pendente (Antes de Aprovar) -->
-    <div id="modal-edit-pending" class="modal">
-        <div class="modal-content">
-            <header class="modal-header">
-                <h3>Editar Compra Pendente</h3>
-                <button class="close-modal"><i class="bi bi-x-lg"></i></button>
-            </header>
-            <form id="form-edit-pending">
-                <input type="hidden" id="edit-pending-id">
-                
-                <div class="value-input-wrapper small">
-                    <span class="currency">R$</span>
-                    <input type="text" id="edit-pending-value" inputmode="numeric" autocomplete="off" required>
-                </div>
-
-                <div class="input-grid">
-                    <div class="field-group span-2">
-                        <label>Descrição</label>
-                        <input type="text" id="edit-pending-name" required>
-                    </div>
-
-                    <div class="field-group span-2">
-                        <label>Data</label>
-                        <input type="date" id="edit-pending-date" required>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn-main">Salvar Alterações</button>
-                    <button type="button" class="btn-sub close-modal">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Container para notificações Toast -->
     <div id="toast-container" class="toast-container"></div>
 

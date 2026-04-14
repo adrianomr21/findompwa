@@ -226,15 +226,12 @@ function renderApprovals() {
                     <div style="font-weight: 500; margin-bottom: 5px;">${appr.description || 'Compra sem descrição'}</div>
                     ${appr.smsText ? `<div class="approval-sms-text">"${appr.smsText}"</div>` : ''}
                 </div>
-                <div class="approval-actions" style="grid-template-columns: 1fr 1fr 1fr;">
+                <div class="approval-actions" style="grid-template-columns: 1fr 1fr;">
                     <button class="btn-discard" onclick="discardApproval('${appr.id}')" title="Descartar">
-                        <i class="bi bi-trash"></i>
+                        <i class="bi bi-trash"></i> Descartar
                     </button>
-                    <button class="btn-sub" onclick="openEditPendingModal('${appr.id}')" style="padding: 10px; border-radius: 8px;" title="Editar">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn-approve" onclick="approvePurchase('${appr.id}')" title="Aprovar">
-                        <i class="bi bi-check-lg"></i>
+                    <button class="btn-approve" onclick="approvePurchase('${appr.id}')" title="Completar Cadastro">
+                        <i class="bi bi-pencil"></i> Editar e Salvar
                     </button>
                 </div>
             </div>
@@ -242,57 +239,17 @@ function renderApprovals() {
     }).join('');
 }
 
-window.openEditPendingModal = function(id) {
-    const purchase = pendingPurchases.find(p => p.id === id);
-    if (!purchase) return;
-
-    const modal = document.getElementById('modal-edit-pending');
-    document.getElementById('edit-pending-id').value = id;
-    document.getElementById('edit-pending-value').value = maskCurrency(purchase.value || 0);
-    document.getElementById('edit-pending-name').value = purchase.description || '';
-    
-    if (purchase.date) {
-        document.getElementById('edit-pending-date').value = purchase.date.split('T')[0];
-    } else {
-        document.getElementById('edit-pending-date').value = new Date().toISOString().split('T')[0];
-    }
-
-    if (modal) modal.classList.add('active');
-};
-
-const formEditPending = document.getElementById('form-edit-pending');
-if (formEditPending) {
-    formEditPending.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('edit-pending-id').value;
-        const value = parseCurrency(document.getElementById('edit-pending-value').value);
-        const description = document.getElementById('edit-pending-name').value;
-        const date = document.getElementById('edit-pending-date').value + 'T12:00:00Z';
-
-        try {
-            await db.collection('compras_pendentes').doc(id).update({
-                value,
-                description,
-                date
-            });
-            document.getElementById('modal-edit-pending').classList.remove('active');
-            showToast("Compra atualizada!", 'success');
-        } catch (error) {
-            showToast("Erro ao atualizar pendência", 'error');
-        }
-    });
-}
-
 window.approvePurchase = function(id) {
     const purchase = pendingPurchases.find(p => p.id === id);
     if (!purchase) return;
 
-    // Preencher o formulário de cadastro
+    // Preencher o formulário de cadastro principal com os dados da pendência
     document.getElementById('reg-value').value = maskCurrency(purchase.value || 0);
     document.getElementById('reg-name').value = purchase.description || '';
     document.getElementById('reg-pending-id').value = id;
     
     if (purchase.date) {
+        // Garantir formato YYYY-MM-DD para o input type="date"
         document.getElementById('reg-date').value = purchase.date.split('T')[0];
     } else {
         document.getElementById('reg-date').value = new Date().toISOString().split('T')[0];
@@ -303,7 +260,7 @@ window.approvePurchase = function(id) {
         document.getElementById('reg-payment-method').value = purchase.paymentMethodId;
     }
 
-    showToast("Dados carregados. Categorize e salve!", 'success');
+    showToast("Dados carregados. Complete o cadastro!", 'success');
     showScreen('register');
 };
 
