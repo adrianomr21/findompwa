@@ -36,6 +36,7 @@ let categoryChart = null;
 let currentMonth = 0;
 let currentYear = 0;
 let currentPaymentsData = [];
+let pendingPurchases = [];
 
 const authScreen = document.getElementById('auth-screen');
 const appWrapper = document.getElementById('app-wrapper');
@@ -147,6 +148,8 @@ if (formSignup) {
 }
 
 // Gerenciar estado de Autenticação
+let approvalsUnsubscribe = null;
+
 auth.onAuthStateChanged(user => {
     hideInitialLoader();
     if (user) {
@@ -155,18 +158,164 @@ auth.onAuthStateChanged(user => {
         settingsService = new SettingsService(db, user.uid);
         cartService = new CartService(db, user.uid);
         loadAllSettings();
+        startApprovalsListener(user.uid);
         console.log("Usuário logado:", user.email);
     } else {
         authScreen.classList.add('active');
         appWrapper.style.display = 'none';
         settingsService = null;
         cartService = null;
+        if (approvalsUnsubscribe) approvalsUnsubscribe();
     }
 }, error => {
     console.error("Erro Auth:", error);
     hideInitialLoader();
     showToast("Erro ao verificar autenticação.", 'error');
 });
+
+function startApprovalsListener(userId) {
+    if (approvalsUnsubscribe) approvalsUnsubscribe();
+
+    console.log("Iniciando listener de aprovações para UID:", userId);
+
+    approvalsUnsubscribe = db.collection('compras_pendentes')
+        .where('userId', '==', userId)
+        .onSnapshot(snapshot => {
+            pendingPurchases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            console.log("Aprovações pendentes atualizadas:", pendingPurchases.length, "itens");
+            updateApprovalsBadge();
+            const screenAppr = document.getElementById('screen-approvals');
+            if (screenAppr && screenAppr.classList.contains('active')) {
+                renderApprovals();
+            }
+        }, error => {
+            console.error("Erro no listener de aprovações:", error);
+        });
+}
+
+function updateApprovalsBadge() {
+    const badge = document.getElementById('approvals-badge');
+    if (!badge) return;
+
+    if (pendingPurchases.length > 0) {
+        badge.textContent = pendingPurchases.length;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+function renderApprovals() {
+    const list = document.getElementById('approvals-list');
+    if (!list) return;
+
+    if (pendingPurchases.length === 0) {
+        list.innerHTML = '<div class="list-empty">Nenhuma compra aguardando aprovação.</div>';
+        return;
+    }
+
+    list.innerHTML = pendingPurchases.map(appr => {
+        const date = appr.date ? new Date(appr.date).toLocaleDateString('pt-BR') : 'Data não identificada';
+        return `
+            <div class="approval-item">
+                <div class="approval-info">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                        <span class="history-name" style="font-size: 1.1rem; font-weight: 700;">${formatCurrency(appr.value || 0)}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">${date}</span>
+                    </div>
+                    <div style="font-weight: 500; margin-bottom: 5px;">${appr.description || 'Compra sem descrição'}</div>
+                    ${appr.smsText ? `<div class="approval-sms-text">"${appr.smsText}"</div>` : ''}
+                </div>
+                <div class="approval-actions" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <button class="btn-discard" onclick="discardApproval('${appr.id}')" title="Descartar">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    <button class="btn-sub" onclick="openEditPendingModal('${appr.id}')" style="padding: 10px; border-radius: 8px;" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn-approve" onclick="approvePurchase('${appr.id}')" title="Aprovar">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+window.openEditPendingModal = function(id) {
+    const purchase = pendingPurchases.find(p => p.id === id);
+    if (!purchase) return;
+
+    const modal = document.getElementById('modal-edit-pending');
+    document.getElementById('edit-pending-id').value = id;
+    document.getElementById('edit-pending-value').value = maskCurrency(purchase.value || 0);
+    document.getElementById('edit-pending-name').value = purchase.description || '';
+    
+    if (purchase.date) {
+        document.getElementById('edit-pending-date').value = purchase.date.split('T')[0];
+    } else {
+        document.getElementById('edit-pending-date').value = new Date().toISOString().split('T')[0];
+    }
+
+    if (modal) modal.classList.add('active');
+};
+
+const formEditPending = document.getElementById('form-edit-pending');
+if (formEditPending) {
+    formEditPending.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-pending-id').value;
+        const value = parseCurrency(document.getElementById('edit-pending-value').value);
+        const description = document.getElementById('edit-pending-name').value;
+        const date = document.getElementById('edit-pending-date').value + 'T12:00:00Z';
+
+        try {
+            await db.collection('compras_pendentes').doc(id).update({
+                value,
+                description,
+                date
+            });
+            document.getElementById('modal-edit-pending').classList.remove('active');
+            showToast("Compra atualizada!", 'success');
+        } catch (error) {
+            showToast("Erro ao atualizar pendência", 'error');
+        }
+    });
+}
+
+window.approvePurchase = function(id) {
+    const purchase = pendingPurchases.find(p => p.id === id);
+    if (!purchase) return;
+
+    // Preencher o formulário de cadastro
+    document.getElementById('reg-value').value = maskCurrency(purchase.value || 0);
+    document.getElementById('reg-name').value = purchase.description || '';
+    document.getElementById('reg-pending-id').value = id;
+    
+    if (purchase.date) {
+        document.getElementById('reg-date').value = purchase.date.split('T')[0];
+    } else {
+        document.getElementById('reg-date').value = new Date().toISOString().split('T')[0];
+    }
+    
+    // Tentar selecionar o método de pagamento se o MacroDroid enviou um ID ou Nome
+    if (purchase.paymentMethodId) {
+        document.getElementById('reg-payment-method').value = purchase.paymentMethodId;
+    }
+
+    showToast("Dados carregados. Categorize e salve!", 'success');
+    showScreen('register');
+};
+
+window.discardApproval = async function(id) {
+    if (!confirm("Descartar esta compra pendente?")) return;
+    try {
+        await db.collection('compras_pendentes').doc(id).delete();
+        showToast("Compra descartada.", 'success');
+    } catch (error) {
+        showToast("Erro ao descartar.", 'error');
+    }
+};
 
 if (btnLoginGoogle) {
     btnLoginGoogle.addEventListener('click', () => {
@@ -215,6 +364,10 @@ async function showScreen(screenId) {
 
     if (screenId === 'cart') {
         loadCartData();
+    }
+
+    if (screenId === 'approvals') {
+        renderApprovals();
     }
     
     window.scrollTo(0, 0);
@@ -689,6 +842,14 @@ if (formRegister) {
             btnSubmit.disabled = true;
             btnSubmit.textContent = "Salvando...";
             await db.collection('despesas').add(data);
+            
+            // Se veio de uma aprovação, excluir o item pendente
+            const pendingId = document.getElementById('reg-pending-id').value;
+            if (pendingId) {
+                await db.collection('compras_pendentes').doc(pendingId).delete();
+                document.getElementById('reg-pending-id').value = '';
+            }
+
             showToast("Gasto registrado!", 'success');
             
             // Salvar preferências de preenchimento

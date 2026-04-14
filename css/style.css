@@ -1385,3 +1385,84 @@ input:focus, select:focus { border-color: var(--accent); }
 }
 
 .hidden { display: none !important; }
+
+/* Estilos para Badges de Notificação */
+#nav-approvals {
+    position: relative;
+}
+
+.badge-count {
+    position: absolute;
+    top: 5px;
+    right: 50%;
+    transform: translateX(120%);
+    background: #ff7675;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #0d1117;
+}
+
+/* Estilos para Itens de Aprovação */
+.approval-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius);
+    padding: 15px;
+    margin-bottom: 12px;
+}
+
+.approval-info {
+    margin-bottom: 12px;
+}
+
+.approval-sms-text {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px;
+    border-radius: 6px;
+    margin-top: 8px;
+    border-left: 3px solid var(--accent);
+}
+
+.approval-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.btn-approve {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.btn-discard {
+    background: rgba(255, 118, 117, 0.1);
+    color: #ff7675;
+    border: 1px solid rgba(255, 118, 117, 0.2);
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}

@@ -22,6 +22,16 @@ service cloud.firestore {
     match /carrinhos/{id} { allow read, write: if isOwner(); }
     match /carrinho_itens/{id} { allow read, write: if isOwner(); }
     
+    // 3. Regras para Compras Pendentes (MacroDroid/Postman)
+    match /compras_pendentes/{id} {
+      // Permite criar sem estar logado (MacroDroid via API REST) 
+      // desde que envie o userId correto para que você veja no seu app.
+      allow create: if request.resource.data.userId != null;
+      
+      // Apenas você (logado) pode ler, atualizar ou excluir suas pendências
+      allow read, update, delete: if isOwner();
+    }
+    
     // Bloqueio padrão para qualquer outra coisa
     match /{document=**} {
       allow read, write: if false;

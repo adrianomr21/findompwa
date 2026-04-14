@@ -77,6 +77,11 @@
                 <button data-screen="payments">
                     <i class="bi bi-credit-card"></i><span>Pagar</span>
                 </button>
+                <button data-screen="approvals" id="nav-approvals">
+                    <i class="bi bi-bell-fill"></i>
+                    <span class="badge-count hidden" id="approvals-badge">0</span>
+                    <span>Aprovar</span>
+                </button>
                 <button data-screen="cart">
                     <i class="bi bi-cart3"></i><span>Carrinho</span>
                 </button>
@@ -111,7 +116,9 @@
                         </header>
                         
                         <form id="form-register">
+                            <input type="hidden" id="reg-pending-id">
                             <div class="value-input-wrapper">
+
                                 <span class="currency">R$</span>
                                 <input type="text" id="reg-value" inputmode="numeric" placeholder="0,00" autocomplete="off" required>
                             </div>
@@ -140,11 +147,17 @@
                                 </div>
 
                                 <div class="field-group span-2">
-                                    <label>Descrição</label>
+                                    <label>Nome / Descrição</label>
                                     <input type="text" id="reg-name" placeholder="Ex: Supermercado" required>
                                 </div>
 
                                 <div class="field-group span-2">
+                                    <label>Data da Compra</label>
+                                    <input type="date" id="reg-date">
+                                </div>
+
+                                <div class="field-group span-2">
+
                                     <label>Categoria</label>
                                     <select id="reg-category" required>
                                         <option value="">Selecione...</option>
@@ -340,6 +353,17 @@
                     </button>
                 </div>
             </section>
+
+            <section id="screen-approvals" class="screen">
+                <header class="section-header">
+                    <h1>Aprovações</h1>
+                    <p>Valide compras recebidas via SMS/MacroDroid</p>
+                </header>
+
+                <div id="approvals-list" class="history-list">
+                    <div class="list-empty">Carregando aprovações...</div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -511,6 +535,41 @@
                 <div class="form-actions">
                     <button type="submit" class="btn-main">Salvar Item</button>
                     <button type="button" id="btn-delete-cart-item" class="btn-danger hidden">Excluir Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Editar Compra Pendente (Antes de Aprovar) -->
+    <div id="modal-edit-pending" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3>Editar Compra Pendente</h3>
+                <button class="close-modal"><i class="bi bi-x-lg"></i></button>
+            </header>
+            <form id="form-edit-pending">
+                <input type="hidden" id="edit-pending-id">
+                
+                <div class="value-input-wrapper small">
+                    <span class="currency">R$</span>
+                    <input type="text" id="edit-pending-value" inputmode="numeric" autocomplete="off" required>
+                </div>
+
+                <div class="input-grid">
+                    <div class="field-group span-2">
+                        <label>Descrição</label>
+                        <input type="text" id="edit-pending-name" required>
+                    </div>
+
+                    <div class="field-group span-2">
+                        <label>Data</label>
+                        <input type="date" id="edit-pending-date" required>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-main">Salvar Alterações</button>
+                    <button type="button" class="btn-sub close-modal">Cancelar</button>
                 </div>
             </form>
         </div>
