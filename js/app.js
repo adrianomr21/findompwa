@@ -33,10 +33,8 @@ let currentExpenses = [];
 let currentCarts = [];
 let categoryChart = null;
 
-let bannerMonth = 0;
-let bannerYear = 0;
-let payMonth = 0;
-let payYear = 0;
+let currentMonth = 0;
+let currentYear = 0;
 let currentPaymentsData = [];
 
 const authScreen = document.getElementById('auth-screen');
@@ -189,7 +187,7 @@ if (btnLogout) {
 const screens = document.querySelectorAll('.screen');
 const navButtons = document.querySelectorAll('#app-nav button');
 
-function showScreen(screenId) {
+async function showScreen(screenId) {
     screens.forEach(screen => {
         screen.classList.toggle('active', screen.id === `screen-${screenId}`);
     });
@@ -208,7 +206,7 @@ function showScreen(screenId) {
     }
     
     if (screenId === 'dashboard' || screenId === 'register') {
-        loadDashboardData();
+        await loadDashboardData();
     }
 
     if (screenId === 'payments') {
@@ -223,7 +221,7 @@ function showScreen(screenId) {
 }
 
 navButtons.forEach(btn => {
-    btn.addEventListener('click', () => showScreen(btn.dataset.screen));
+    btn.addEventListener('click', async () => await showScreen(btn.dataset.screen));
 });
 
 // Elementos do Dashboard
@@ -257,8 +255,8 @@ function setupYearFilter() {
         yearSelect.appendChild(opt);
     }
     
-    // Sincronizar com bannerYear
-    yearSelect.value = bannerYear;
+    // Sincronizar com currentYear
+    yearSelect.value = currentYear;
 
     setupFilterListeners();
 }
@@ -279,10 +277,10 @@ function setupFilterListeners() {
     }
 }
 
-function onDashFilterChange(e) {
+async function onDashFilterChange(e) {
     if (e.target.id === 'dash-filter-year') {
-        bannerYear = parseInt(e.target.value);
-        updateTotalDisplay();
+        currentYear = parseInt(e.target.value);
+        await updateTotalDisplay();
     }
     renderDashboard();
 }
@@ -299,24 +297,24 @@ async function loadDashboardData() {
             .map(doc => ({ id: doc.id, ...doc.data() }))
             .sort((a, b) => new Date(b.date) - new Date(a.date));
             
-        updateTotalDisplay();
+        await updateTotalDisplay();
     } catch (error) {
         console.error("Erro ao carregar dashboard:", error);
     }
 }
 
-function renderDashboard() {
+async function renderDashboard() {
     const { year: yearSelect, category: categorySelect, payment: paymentSelect } = getDashFilters();
     const searchInput = document.getElementById('dash-search-history');
     
     if (!yearSelect) return;
 
-    const filterMonth = bannerMonth;
-    const filterYear = bannerYear;
+    const filterMonth = currentMonth;
+    const filterYear = currentYear;
     
-    // Sincronizar select de ano com bannerYear caso tenha mudado via banner
-    if (yearSelect.value != bannerYear) {
-        yearSelect.value = bannerYear;
+    // Sincronizar select de ano com currentYear caso tenha mudado via banner
+    if (yearSelect.value != currentYear) {
+        yearSelect.value = currentYear;
     }
 
     const categoryFilter = categorySelect ? categorySelect.value : 'all';
@@ -367,7 +365,15 @@ function renderDashboard() {
         }
     });
 
-    const total = filtered.reduce((acc, curr) => acc + curr.value, 0);
+    // Se houver filtros ativos, mostramos o total dos itens filtrados.
+    // Se NÃO houver filtros, usamos o total unificado do sistema (o mesmo do banner).
+    let displayTotal = 0;
+    if (categoryFilter !== 'all' || paymentFilter !== 'all' || searchTerm !== '') {
+        displayTotal = filtered.reduce((acc, curr) => acc + curr.value, 0);
+    } else {
+        const { total } = await getMonthlyPayments(filterMonth, filterYear);
+        displayTotal = total;
+    }
     
     // Atualizar o total no topo apenas se estivermos na tela de dashboard
     const mainTotal = document.getElementById('main-total-spent');
@@ -375,7 +381,7 @@ function renderDashboard() {
     const isDashboardActive = screenDash && screenDash.classList.contains('active');
 
     if (isDashboardActive && mainTotal) {
-        mainTotal.textContent = formatCurrency(total);
+        mainTotal.textContent = formatCurrency(displayTotal);
     }
     
     const historyCount = document.getElementById('history-count');
@@ -559,7 +565,7 @@ if (formEditExpense) {
             await db.collection('despesas').doc(id).update(data);
             modalEditExpense.classList.remove('active');
             showToast("Alterações salvas!", 'success');
-            loadDashboardData();
+            await loadDashboardData();
         } catch (error) {
             showToast("Erro ao atualizar: " + error.message, 'error');
         }
@@ -574,7 +580,7 @@ if (btnDeleteExpense) {
             await db.collection('despesas').doc(id).delete();
             modalEditExpense.classList.remove('active');
             showToast("Despesa excluída!", 'success');
-            loadDashboardData();
+            await loadDashboardData();
         } catch (error) {
             showToast("Erro ao excluir: " + error.message, 'error');
         }
@@ -599,7 +605,7 @@ regTypeRadios.forEach(radio => {
 // Evento para trocar o mês do topo conforme a forma de pagamento (Cartão de Crédito com Virada)
 const regPaymentSelect = document.getElementById('reg-payment-method');
 
-function updateBannerByPaymentMethod(paymentMethodId) {
+async function updateBannerByPaymentMethod(paymentMethodId) {
     if (!paymentMethodId) return;
 
     const payMethod = currentPaymentMethods.find(p => p.id === paymentMethodId);
@@ -633,11 +639,11 @@ function updateBannerByPaymentMethod(paymentMethodId) {
         }
 
         // Atualizar variáveis do Banner
-        bannerMonth = dueMonth;
-        bannerYear = dueYear;
+        currentMonth = dueMonth;
+        currentYear = dueYear;
 
         // Renderizar atualizações (updateTotalDisplay já chama renderDashboard)
-        updateTotalDisplay();
+        await updateTotalDisplay();
     }
 }
 
@@ -697,7 +703,7 @@ if (formRegister) {
             
             parcelasField.classList.add('hidden');
             if (progressContainer) progressContainer.classList.add('hidden');
-            loadDashboardData();
+            await loadDashboardData();
             showScreen('dashboard');
         } catch (error) {
             showToast("Erro ao registrar: " + error.message, 'error');
@@ -729,7 +735,7 @@ async function loadAllSettings() {
 
         renderSettingsLists();
         populateSelects();
-        loadDashboardData();
+        await loadDashboardData();
     } catch (error) {
         console.error("Erro ao carregar configurações:", error);
     }
@@ -1092,16 +1098,14 @@ if (catSelectProgress) {
     });
 }
 
-async function loadPaymentsData() {
-    if (!auth.currentUser) return;
-    const list = document.getElementById('payments-list');
-    if (list) list.innerHTML = '<div class="list-empty">Carregando pagamentos...</div>';
+async function getMonthlyPayments(month, year) {
+    if (!auth.currentUser) return { data: [], total: 0 };
 
     try {
         const faturasSnap = await db.collection('faturas')
             .where('userId', '==', auth.currentUser.uid)
-            .where('month', '==', payMonth)
-            .where('year', '==', payYear)
+            .where('month', '==', month)
+            .where('year', '==', year)
             .get();
         
         const faturasStatus = {};
@@ -1116,10 +1120,10 @@ async function loadPaymentsData() {
             let currentInst = null;
 
             if (isParcelado) {
-                currentInst = getInstallmentStatus(baseDate, exp.installments, payMonth, payYear);
+                currentInst = getInstallmentStatus(baseDate, exp.installments, month, year);
             } else {
                 const d = new Date(baseDate);
-                if (d.getMonth() === payMonth && d.getFullYear() === payYear) currentInst = 1;
+                if (d.getMonth() === month && d.getFullYear() === year) currentInst = 1;
             }
 
             if (currentInst) {
@@ -1131,7 +1135,7 @@ async function loadPaymentsData() {
                         notes: method ? method.notes : '',
                         type: 'cartao',
                         originalValue: 0,
-                        dueDate: calculateDueDateForMonth(method, payMonth, payYear),
+                        dueDate: calculateDueDateForMonth(method, month, year),
                         items: []
                     };
                 }
@@ -1144,11 +1148,11 @@ async function loadPaymentsData() {
             // Filtrar por data de início e fim
             if (debt.startDate) {
                 const start = new Date(debt.startDate + 'T12:00:00');
-                if (new Date(payYear, payMonth, 1) < new Date(start.getFullYear(), start.getMonth(), 1)) return;
+                if (new Date(year, month, 1) < new Date(start.getFullYear(), start.getMonth(), 1)) return;
             }
             if (debt.endDate) {
                 const end = new Date(debt.endDate + 'T12:00:00');
-                if (new Date(payYear, payMonth, 1) > new Date(end.getFullYear(), end.getMonth(), 1)) return;
+                if (new Date(year, month, 1) > new Date(end.getFullYear(), end.getMonth(), 1)) return;
             }
 
             const sourceId = `fixed_${debt.id}`;
@@ -1158,12 +1162,12 @@ async function loadPaymentsData() {
                 notes: debt.notes || '',
                 type: 'fixa',
                 originalValue: debt.value,
-                dueDate: new Date(payYear, payMonth, debt.paymentDay).toISOString(),
+                dueDate: new Date(year, month, debt.paymentDay).toISOString(),
                 items: [debt]
             };
         });
 
-        currentPaymentsData = Object.values(grouped).map(item => {
+        const data = Object.values(grouped).map(item => {
             const status = faturasStatus[item.sourceId] || {};
             return {
                 ...item,
@@ -1179,11 +1183,25 @@ async function loadPaymentsData() {
             return a.paid ? 1 : -1;
         });
 
-        renderPayments();
-        updatePayTotalDisplay();
+        const total = data.filter(p => !p.ignored).reduce((acc, curr) => acc + (parseFloat(curr.actualValue) || 0), 0);
+
+        return { data, total };
     } catch (error) {
-        console.error("Erro ao carregar pagamentos:", error);
+        console.error("Erro ao calcular pagamentos mensais:", error);
+        return { data: [], total: 0 };
     }
+}
+
+async function loadPaymentsData() {
+    if (!auth.currentUser) return;
+    const list = document.getElementById('payments-list');
+    if (list) list.innerHTML = '<div class="list-empty">Carregando pagamentos...</div>';
+
+    const { data, total } = await getMonthlyPayments(currentMonth, currentYear);
+    currentPaymentsData = data;
+
+    renderPayments();
+    updatePayTotalDisplay(total);
 }
 
 function renderPayments() {
@@ -1254,9 +1272,9 @@ window.showPaymentNote = (sourceId) => {
 };
 
 function updatePayTotalDisplay() {
-    const monthName = new Date(payYear, payMonth).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+    const monthName = new Date(currentYear, currentMonth).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
     const bannerTitle = document.getElementById('pay-month-name');
-    if (bannerTitle) bannerTitle.textContent = `PAGAMENTOS DE ${monthName} (${payYear})`;
+    if (bannerTitle) bannerTitle.textContent = `PAGAMENTOS DE ${monthName} (${currentYear})`;
     
     const total = calculatePayTotal(currentPaymentsData);
         
@@ -1298,8 +1316,8 @@ async function savePaymentStatus(pay) {
 
     const data = {
         userId: auth.currentUser.uid,
-        month: payMonth,
-        year: payYear,
+        month: currentMonth,
+        year: currentYear,
         sourceId: pay.sourceId,
         actualValue: pay.actualValue,
         originalValue: pay.originalValue,
@@ -1358,15 +1376,15 @@ if (formEditPayValue) {
 }
 
 // Funções de Navegação e Cálculo do Banner / Pagamentos
-function initBannerDate() {
+async function initBannerDate() {
     const now = new Date();
     const next = new Date();
     next.setMonth(now.getMonth() + 1);
-    bannerMonth = next.getMonth();
-    bannerYear = next.getFullYear();
-    payMonth = now.getMonth();
-    payYear = now.getFullYear();
-    updateTotalDisplay();
+    currentMonth = next.getMonth();
+    currentYear = next.getFullYear();
+    currentMonth = now.getMonth();
+    currentYear = now.getFullYear();
+    await updateTotalDisplay();
     updatePayTotalDisplay();
 }
 
@@ -1382,35 +1400,35 @@ function setupBannerNav() {
     if (btnPayNext) btnPayNext.addEventListener('click', () => navigateMonth('pay', 1));
 }
 
-function navigateMonth(type, delta) {
+async function navigateMonth(type, delta) {
     if (type === 'banner') {
-        const d = new Date(bannerYear, bannerMonth + delta, 1);
-        bannerMonth = d.getMonth();
-        bannerYear = d.getFullYear();
-        updateTotalDisplay();
+        const d = new Date(currentYear, currentMonth + delta, 1);
+        currentMonth = d.getMonth();
+        currentYear = d.getFullYear();
+        await updateTotalDisplay();
     } else {
-        const d = new Date(payYear, payMonth + delta, 1);
-        payMonth = d.getMonth();
-        payYear = d.getFullYear();
-        loadPaymentsData();
+        const d = new Date(currentYear, currentMonth + delta, 1);
+        currentMonth = d.getMonth();
+        currentYear = d.getFullYear();
+        await loadPaymentsData();
     }
 }
 
-function updateTotalDisplay() {
-    const monthName = new Date(bannerYear, bannerMonth).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+async function updateTotalDisplay() {
+    const monthName = new Date(currentYear, currentMonth).toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
     const bannerTitle = document.getElementById('banner-month-name');
-    if (bannerTitle) bannerTitle.textContent = `TOTAL DE ${monthName} (${bannerYear})`;
+    if (bannerTitle) bannerTitle.textContent = `PAGAMENTOS DE ${monthName} (${currentYear})`;
     
-    // Calculate category spending
-    const categoryTotals = calculateCategorySpending(currentExpenses, currentCategories, bannerMonth, bannerYear);
+    // Calculate category spending (needed for dashboard bars/charts)
+    const categoryTotals = calculateCategorySpending(currentExpenses, currentCategories, currentMonth, currentYear);
     
     // Update currentCategories with calculated spent values
     currentCategories.forEach(cat => {
         cat.spent = categoryTotals[cat.id] || 0;
     });
 
-    // Calculate main total
-    const total = Object.values(categoryTotals).reduce((acc, val) => acc + val, 0);
+    // Calculate unified main total (Expenses + Fixed Debts + Faturas status)
+    const { total } = await getMonthlyPayments(currentMonth, currentYear);
     const mainTotal = document.getElementById('main-total-spent');
     if (mainTotal) mainTotal.textContent = formatCurrency(total);
 
@@ -1490,16 +1508,19 @@ function renderCarts() {
         return `
         <div class="cart-card ${isCollapsed ? 'collapsed' : ''}">
             <div class="group-header">
-                <div class="cart-title-info" onclick="toggleCartCollapse('${cart.id}')">
-                    <div class="cart-name-row">
+                <div class="cart-title-info">
+                    <div class="cart-name-row" onclick="toggleCartCollapse('${cart.id}')">
                         <i class="bi ${isCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'}"></i>
                         <h3 class="cart-name">${cart.name}</h3>
+                        <button class="btn-edit-item" onclick="event.stopPropagation(); openCartModal('${cart.id}')" title="Editar Carrinho" style="padding: 0; font-size: 0.9rem; margin-left: 6px; opacity: 0.6; color: var(--text-muted);">
+                            <i class="bi bi-pencil"></i>
+                        </button>
                     </div>
-                    <small class="cart-count">${cart.items.length} itens</small>
+                    <small class="cart-count" style="margin-left: auto;">${cart.items.length} itens</small>
                 </div>
                 <div class="cart-header-actions">
-                    <button class="btn-edit-item" onclick="openCartModal('${cart.id}')" title="Editar Carrinho">
-                        <i class="bi bi-pencil"></i>
+                    <button class="btn-edit-item" onclick="clearCart('${cart.id}', '${cart.name}')" title="Limpar Carrinho" style="color: #ff7675 !important; display: flex !important; visibility: visible !important;">
+                        <i class="bi bi-eraser"></i>
                     </button>
                     <button class="btn-add-item small" onclick="openCartItemModal(null, '${cart.id}')" title="Adicionar Itens">
                         <i class="bi bi-plus-lg"></i>
@@ -1723,6 +1744,17 @@ window.toggleCartItemStatus = async function(itemId, bought) {
         if (window.navigator.vibrate) window.navigator.vibrate(10);
     } catch (error) {
         showToast("Erro ao atualizar item", 'error');
+    }
+};
+
+window.clearCart = async function(cartId, cartName) {
+    if (!confirm(`Limpar todos os itens do carrinho "${cartName}"?`)) return;
+    try {
+        await cartService.clearCartItems(cartId);
+        showToast("Carrinho limpo!", 'success');
+        loadCartData();
+    } catch (error) {
+        showToast("Erro ao limpar carrinho", 'error');
     }
 };
 

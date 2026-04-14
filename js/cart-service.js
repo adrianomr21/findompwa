@@ -72,6 +72,17 @@ export class CartService {
         await this.db.collection('carrinho_itens').doc(itemId).delete();
     }
 
+    async clearCartItems(cartId) {
+        const items = await this.getItems(cartId);
+        if (items.length === 0) return;
+        
+        const batch = this.db.batch();
+        items.forEach(item => {
+            batch.delete(this.db.collection('carrinho_itens').doc(item.id));
+        });
+        await batch.commit();
+    }
+
     async toggleItemBought(itemId, bought) {
         await this.db.collection('carrinho_itens').doc(itemId).update({ bought });
     }
