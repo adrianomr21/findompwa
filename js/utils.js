@@ -132,6 +132,7 @@ export function calculateDueDate(purchaseDate, paymentMethod) {
         if (endDay) {
             // Se o dia da compra passou do dia de fechamento, cai no ciclo do mês seguinte
             if (date.getDate() > endDay) {
+                closingMonthDate.setDate(1); // Evitar overflow (ex: 31 de Março -> 31 de Abril não existe)
                 closingMonthDate.setMonth(closingMonthDate.getMonth() + 1);
             }
         }
@@ -144,13 +145,9 @@ export function calculateDueDate(purchaseDate, paymentMethod) {
         // o vencimento é no mês seguinte ao fechamento da fatura.
         // Ex: Fecha dia 23/03, Vence dia 05/04.
         if (endDay && paymentDay <= endDay) {
+            due.setDate(1); // Evitar overflow
             due.setMonth(due.getMonth() + 1);
-        }
-
-        // Garantia para formas sem ciclo definido (endDay vazio): 
-        // Se o vencimento calculado ficou no passado em relação à compra, pula para o próximo mês
-        if (due.getTime() < date.getTime()) {
-            due.setMonth(due.getMonth() + 1);
+            due.setDate(paymentDay);
         }
 
         return due.toISOString();
