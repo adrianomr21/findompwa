@@ -1394,7 +1394,7 @@ input:focus, select:focus { border-color: var(--accent); }
 .badge-count {
     position: absolute;
     top: 5px;
-    right: 50%;
+    right: 30%;
     transform: translateX(120%);
     background: #ff7675;
     color: white;
