@@ -820,8 +820,10 @@ if (formRegister) {
         const originalText = btnSubmit.textContent;
         
         const payMethod = currentPaymentMethods.find(p => p.id === paymentMethodId);
-        const now = new Date();
-        const purchaseDate = now.toISOString();
+        
+        // Usar a data do campo ou a data atual se estiver vazio
+        const dateInput = document.getElementById('reg-date').value;
+        const purchaseDate = dateInput ? new Date(dateInput + 'T12:00:00').toISOString() : new Date().toISOString();
 
         const data = {
             value: parseCurrency(document.getElementById('reg-value').value),
@@ -872,6 +874,11 @@ if (formRegister) {
             btnSubmit.disabled = false;
             btnSubmit.textContent = originalText;
         }
+    });
+
+    formRegister.addEventListener('reset', () => {
+        document.getElementById('reg-pending-id').value = '';
+        if (progressContainer) progressContainer.classList.add('hidden');
     });
 }
 

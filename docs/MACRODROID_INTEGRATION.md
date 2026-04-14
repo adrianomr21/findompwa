@@ -10,7 +10,7 @@ Use estes dados para configurar as requisições (extraídos do seu `firebase-co
 
 - **Project ID:** `financaspwa`
 - **API Key:** `AIzaSyAyh7qIiGMbjqhD8YykAUzBMn0Y1vHmTrA`
-- **Seu User ID (UID):** `cvlyquTYJGUfxnEeFveAldJa00E3`
+- **Seu User ID (UID):** `HhjqZ0VXmOdffjIY3qLT5fpqoBI3`
 
 ---
 
@@ -29,7 +29,7 @@ O Firestore exige que cada campo seja tipado. Use o modelo abaixo:
 ```json
 {
   "fields": {
-    "userId": { "stringValue": "COLE_SEU_UID_AQUI" },
+    "userId": { "stringValue": "HhjqZ0VXmOdffjIY3qLT5fpqoBI3" },
     "value": { "doubleValue": 125.50 },
     "description": { "stringValue": "NOME DO ESTABELECIMENTO" },
     "smsText": { "stringValue": "Texto original do SMS recebido para referência" },
