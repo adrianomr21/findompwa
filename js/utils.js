@@ -162,9 +162,10 @@ export function calculateDueDate(purchaseDate, paymentMethod) {
  * @param {Array} categories Lista de categorias.
  * @param {number} month Mês (0-11).
  * @param {number} year Ano.
+ * @param {Array} fixedDebts Lista de dívidas fixas (opcional).
  * @returns {Object} Um mapa de totais por ID de categoria.
  */
-export function calculateCategorySpending(expenses, categories, month, year) {
+export function calculateCategorySpending(expenses, categories, month, year, fixedDebts = []) {
     const totals = {};
     categories.forEach(cat => totals[cat.id] = 0);
 
@@ -183,6 +184,22 @@ export function calculateCategorySpending(expenses, categories, month, year) {
 
         if (val > 0 && totals[exp.categoryId] !== undefined) {
             totals[exp.categoryId] += val;
+        }
+    });
+
+    fixedDebts.forEach(debt => {
+        // Filtrar por data de início e fim (mesma lógica do getMonthlyPayments)
+        if (debt.startDate) {
+            const start = new Date(debt.startDate + 'T12:00:00');
+            if (new Date(year, month, 1) < new Date(start.getFullYear(), start.getMonth(), 1)) return;
+        }
+        if (debt.endDate) {
+            const end = new Date(debt.endDate + 'T12:00:00');
+            if (new Date(year, month, 1) > new Date(end.getFullYear(), end.getMonth(), 1)) return;
+        }
+
+        if (debt.categoryId && totals[debt.categoryId] !== undefined) {
+            totals[debt.categoryId] += debt.value;
         }
     });
 

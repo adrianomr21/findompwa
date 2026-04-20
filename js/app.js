@@ -475,6 +475,34 @@ async function renderDashboard() {
         }
     });
 
+    currentFixedDebts.forEach(debt => {
+        // Filtrar por busca
+        if (searchTerm && !debt.name.toLowerCase().includes(searchTerm)) return;
+
+        // Filtrar por vigência
+        if (debt.startDate) {
+            const start = new Date(debt.startDate + 'T12:00:00');
+            if (new Date(filterYear, filterMonth, 1) < new Date(start.getFullYear(), start.getMonth(), 1)) return;
+        }
+        if (debt.endDate) {
+            const end = new Date(debt.endDate + 'T12:00:00');
+            if (new Date(filterYear, filterMonth, 1) > new Date(end.getFullYear(), end.getMonth(), 1)) return;
+        }
+
+        const matchCategory = categoryFilter === 'all' || debt.categoryId === categoryFilter;
+        // Dívida fixa não tem forma de pagamento associada nos filtros de despesa do dashboard (normalmente)
+        const matchPayment = paymentFilter === 'all'; 
+
+        if (matchCategory && matchPayment) {
+            filtered.push({
+                ...debt,
+                description: debt.name,
+                displayDate: new Date(filterYear, filterMonth, debt.paymentDay).toISOString(),
+                type: 'fixa'
+            });
+        }
+    });
+
     // Se houver filtros ativos, mostramos o total dos itens filtrados.
     // Se NÃO houver filtros, usamos o total unificado do sistema (o mesmo do banner).
     let displayTotal = 0;
@@ -586,9 +614,11 @@ function renderHistory(expenses) {
                 </div>
                 <div class="history-value">
                     <span class="history-amount">${formatCurrency(exp.value)}</span>
-                    <button class="btn-edit-item" onclick="openEditExpenseModal('${exp.id}')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
+                    ${exp.type !== 'fixa' ? `
+                        <button class="btn-edit-item" onclick="openEditExpenseModal('${exp.id}')">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    ` : ''}
                 </div>
             </div>
         `;
@@ -934,8 +964,19 @@ function generateSettingsFields(type, data = {}) {
             document.getElementById('boleto-fields').classList.toggle('hidden', e.target.value !== 'boleto');
         });
     } else if (type === 'fixedDebt') {
+        const categoryOptions = currentCategories.map(cat => 
+            `<option value="${cat.id}" ${data.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`
+        ).join('');
+
         container.innerHTML = `
             <div class="field-group span-2"><label>Nome</label><input type="text" id="debt-name" value="${data.name || ''}" required></div>
+            <div class="field-group span-2">
+                <label>Categoria</label>
+                <select id="debt-category" required>
+                    <option value="">Selecione...</option>
+                    ${categoryOptions}
+                </select>
+            </div>
             <div class="field-group"><label>Valor (R$)</label><input type="text" inputmode="numeric" id="debt-value" autocomplete="off" value="${data.value ? maskCurrency(data.value) : '0,00'}" required></div>
             <div class="field-group"><label>Dia</label><input type="number" id="debt-day" min="1" max="31" value="${data.paymentDay || ''}" required></div>
             <div class="field-group"><label>Início (Opcional)</label><input type="date" id="debt-start" value="${data.startDate || ''}"></div>
@@ -965,6 +1006,7 @@ if (formSettings) {
             } else if (data.type === 'boleto') data.dueDay = parseInt(document.getElementById('pay-due').value);
         } else if (type === 'fixedDebt') {
             data.name = document.getElementById('debt-name').value;
+            data.categoryId = document.getElementById('debt-category').value;
             data.value = parseCurrency(document.getElementById('debt-value').value);
             data.paymentDay = parseInt(document.getElementById('debt-day').value);
             data.startDate = document.getElementById('debt-start').value;
@@ -1136,7 +1178,9 @@ function getDetailsByType(type, item) {
         return details;
     }
     if (type === 'fixedDebt') {
-        let details = `Valor: R$ ${item.value.toFixed(2)} - Dia ${item.paymentDay}`;
+        const category = currentCategories.find(c => c.id === item.categoryId);
+        const catName = category ? category.name : 'Sem categoria';
+        let details = `<strong>${catName}</strong> • Valor: R$ ${item.value.toFixed(2)} - Dia ${item.paymentDay}`;
         if (item.startDate || item.endDate) {
             const start = item.startDate ? new Date(item.startDate + 'T12:00:00').toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '∞';
             const end = item.endDate ? new Date(item.endDate + 'T12:00:00').toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '∞';
@@ -1545,7 +1589,7 @@ async function updateTotalDisplay() {
     if (bannerTitle) bannerTitle.textContent = `PAGAMENTOS DE ${monthName} (${currentYear})`;
     
     // Calculate category spending (needed for dashboard bars/charts)
-    const categoryTotals = calculateCategorySpending(currentExpenses, currentCategories, currentMonth, currentYear);
+    const categoryTotals = calculateCategorySpending(currentExpenses, currentCategories, currentMonth, currentYear, currentFixedDebts);
     
     // Update currentCategories with calculated spent values
     currentCategories.forEach(cat => {
